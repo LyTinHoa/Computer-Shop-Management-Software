@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using ComputerShopManagement.Views; // Added to access the Views folder
 
 namespace ComputerShopManagement
 {
@@ -9,8 +10,8 @@ namespace ComputerShopManagement
         static void Main()
         {
             ApplicationConfiguration.Initialize();
-            // Starts the app with the default form. We will change this to frmLogin later.
-            Application.Run(new Form1());
+            // Start the application with the new modern Login Form
+            Application.Run(new frmLogin());
         }
     }
 }
