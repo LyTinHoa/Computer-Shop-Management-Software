@@ -45,7 +45,7 @@ namespace ComputerShopManagement.Views
             get
             {
                 CreateParams cp = base.CreateParams;
-                cp.ClassStyle |= 0x00020000; // Drop Shadow
+                cp.ClassStyle |= 0x00020000;
                 return cp;
             }
         }
@@ -65,11 +65,10 @@ namespace ComputerShopManagement.Views
             this.BackColor = Color.FromArgb(245, 246, 250);
             this.Text = "BitTekk Dashboard";
 
-            // --- TOP BAR (Proportions balanced for Size 16 text) ---
+            // --- TOP BAR ---
             pnlTopBar = new Panel { Dock = DockStyle.Top, Height = 60, BackColor = Color.White };
             this.Controls.Add(pnlTopBar);
 
-            // Welcome Text size perfectly matched to Menu Buttons (Size 16)
             Label lblWelcome = new Label { Text = $"Welcome, {_currentUser.FullName}  |  Role: {_currentUser.Role}", Font = new Font("Segoe UI Semibold", 16), ForeColor = Color.FromArgb(44, 62, 80), AutoSize = true, Location = new Point(20, 15) };
             pnlTopBar.Controls.Add(lblWelcome);
 
@@ -93,7 +92,6 @@ namespace ComputerShopManagement.Views
             };
             this.Controls.Add(pnlSidebar);
 
-            // Logo remains 50% larger
             Label lblLogo = new Label { Text = "BitTekk", Font = new Font("Segoe UI", 45, FontStyle.Bold), ForeColor = Color.White, AutoSize = true, Location = new Point(40, 30), BackColor = Color.Transparent };
             pnlSidebar.Controls.Add(lblLogo);
 
@@ -102,22 +100,26 @@ namespace ComputerShopManagement.Views
             this.Controls.Add(pnlMainContent);
 
             // --- NAVIGATION BUTTONS ---
-            btnSales = CreateNavButton("🛒  Point of Sale", 160);
-            btnSales.Click += (s, e) =>
-            {
-                // Opens the POS form and passes the current user down the chain
-                frmSales salesForm = new frmSales(_currentUser);
-                this.Hide(); // Hides the dashboard
-                salesForm.ShowDialog(); // Opens POS as a modal
-                this.Show(); // Re-shows the dashboard when POS is closed
-            };
-            btnInventory = CreateNavButton("📦  Inventory Manager", 235);
-            btnCustomers = CreateNavButton("👥  Customers", 310);
-            btnEmployees = CreateNavButton("👔  Employee Admin", 385);
-            btnReports = CreateNavButton("📊  Reports & Analytics", 460);
+            // We temporarily set their Y to 0. They will be stacked automatically by the Role logic.
+            btnSales = CreateNavButton("🛒  Point of Sale", 0);
+            btnInventory = CreateNavButton("📦  Inventory Manager", 0);
+            btnCustomers = CreateNavButton("👥  Customers", 0);
+            btnEmployees = CreateNavButton("👔  Employee Admin", 0);
+            btnReports = CreateNavButton("📊  Reports & Analytics", 0);
 
-            btnLogout = CreateNavButton("🚪  Logout", 700);
+            // LOGOUT BUTTON (Customized)
+            btnLogout = CreateNavButton("🚪  Logout", 675);
+            // Re-size and center it slightly so the white border doesn't clip against the edge of the window
+            btnLogout.Size = new Size(310, 60);
+            btnLogout.Location = new Point(20, 675);
+            btnLogout.FlatAppearance.BorderSize = 2; // 2px Border
+            btnLogout.FlatAppearance.BorderColor = Color.White; // White Border
+
             btnLogout.Click += (s, e) => { Application.Restart(); };
+
+            // Wire up the main functions
+            btnSales.Click += (s, e) => { frmSales pos = new frmSales(_currentUser); this.Hide(); pos.ShowDialog(); this.Show(); };
+            //btnInventory.Click += (s, e) => { frmInventory inv = new frmInventory(_currentUser); this.Hide(); inv.ShowDialog(); this.Show(); };
         }
 
         private Button CreateNavButton(string text, int yPos)
@@ -136,8 +138,6 @@ namespace ComputerShopManagement.Views
                 Cursor = Cursors.Hand
             };
             btn.FlatAppearance.BorderSize = 0;
-
-            // FIX: Restored the vibrant Light Tech Blue hover effect
             btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(52, 152, 219);
             btn.MouseLeave += (s, e) => btn.BackColor = Color.Transparent;
 
@@ -149,22 +149,53 @@ namespace ComputerShopManagement.Views
         {
             string role = _currentUser.Role;
 
-            btnEmployees.Visible = false;
-            btnReports.Visible = false;
+            // 1. Explicitly define what each role is allowed to see
+            bool showSales = role != "Inventory";
+            bool showInventory = role != "Sales";
+            bool showCustomers = role != "Inventory";
+            bool showEmployees = role == "Manager";
+            bool showReports = role == "Manager";
 
-            if (role == "Sales")
+            // 2. Apply visibility to the buttons
+            btnSales.Visible = showSales;
+            btnInventory.Visible = showInventory;
+            btnCustomers.Visible = showCustomers;
+            btnEmployees.Visible = showEmployees;
+            btnReports.Visible = showReports;
+
+            // 3. DYNAMICALLY STACK THE BUTTONS 
+            // By checking our boolean flags instead of btn.Visible, it works perfectly before the form even renders
+            int currentY = 160; // Starting position directly under the BitTekk logo
+            int spacing = 75;   // Button height (65) + 10px of gap space
+
+            if (showSales)
             {
-                btnInventory.Visible = false;
+                btnSales.Location = new Point(0, currentY);
+                currentY += spacing;
             }
-            else if (role == "Inventory")
+
+            if (showInventory)
             {
-                btnSales.Visible = false;
-                btnCustomers.Visible = false;
+                btnInventory.Location = new Point(0, currentY);
+                currentY += spacing;
             }
-            else if (role == "Manager")
+
+            if (showCustomers)
             {
-                btnEmployees.Visible = true;
-                btnReports.Visible = true;
+                btnCustomers.Location = new Point(0, currentY);
+                currentY += spacing;
+            }
+
+            if (showEmployees)
+            {
+                btnEmployees.Location = new Point(0, currentY);
+                currentY += spacing;
+            }
+
+            if (showReports)
+            {
+                btnReports.Location = new Point(0, currentY);
+                currentY += spacing;
             }
         }
     }

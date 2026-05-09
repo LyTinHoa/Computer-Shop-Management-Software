@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Data.SqlClient;
@@ -11,6 +12,16 @@ using ComputerShopManagement.Models;
 
 namespace ComputerShopManagement.Views
 {
+    // Strongly-typed model for the Cart UI
+    public class CartItem
+    {
+        public int ProductID { get; set; }
+        public string Product { get; set; }
+        public int Qty { get; set; }
+        public decimal Price { get; set; }
+        public decimal Subtotal { get { return Qty * Price; } }
+    }
+
     public partial class frmSales : Form
     {
         [DllImport("dwmapi.dll", PreserveSig = true)]
@@ -21,18 +32,16 @@ namespace ComputerShopManagement.Views
         private SalesController _controller;
         private Staff _currentUser;
 
-        // UI Elements
         private Panel pnlTopBar;
         private DataGridView dgvProducts;
         private DataGridView dgvCart;
         private Label lblTotalAmount;
         private TextBox txtCustomerPhone;
-
-        // Upgraded to Panel for custom anti-aliased drawing
         private Panel btnCheckout;
         private bool isCheckoutHovered = false;
 
-        private List<dynamic> _cartBindingList;
+        // Upgraded to a BindingList to support dynamic updates (Aggregation/Deletion)
+        private BindingList<CartItem> _cartItems;
 
         public frmSales(Staff currentUser)
         {
@@ -41,7 +50,7 @@ namespace ComputerShopManagement.Views
             _controller = new SalesController();
 
             _controller.CurrentInvoice.StaffID = _currentUser.StaffID;
-            _cartBindingList = new List<dynamic>();
+            _cartItems = new BindingList<CartItem>();
 
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint, true);
@@ -79,25 +88,13 @@ namespace ComputerShopManagement.Views
             Label lblTitle = new Label { Text = "BitTekk | Point of Sale", Font = new Font("Segoe UI Semibold", 16), ForeColor = deepText, AutoSize = true, Location = new Point(20, 15) };
             pnlTopBar.Controls.Add(lblTitle);
 
-            // --- UPDATED CLOSE BUTTON (Shifted Left & Visually Centered) ---
-            Button btnClose = new Button
-            {
-                Text = "×",
-                Font = new Font("Segoe UI", 16),
-                ForeColor = Color.Gray,
-                FlatStyle = FlatStyle.Flat,
-                Size = new Size(40, 40),
-                Location = new Point(1135, 10), // Shifted 5px further left
-                Cursor = Cursors.Hand,
-                Anchor = AnchorStyles.Top | AnchorStyles.Right,
-                TextAlign = ContentAlignment.MiddleCenter,
-                Padding = new Padding(2, 0, 0, 0) // Nudges the "×" 2px right to perfectly center it visually
-            };
+            Button btnClose = new Button { Text = "×", Font = new Font("Segoe UI", 16), ForeColor = Color.Gray, FlatStyle = FlatStyle.Flat, Size = new Size(40, 40), Location = new Point(1135, 10), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(2, 0, 0, 0) };
             btnClose.FlatAppearance.BorderSize = 0;
             btnClose.MouseEnter += (s, e) => { btnClose.ForeColor = Color.White; btnClose.BackColor = Color.Red; };
             btnClose.MouseLeave += (s, e) => { btnClose.ForeColor = Color.Gray; btnClose.BackColor = Color.White; };
             btnClose.Click += (s, e) => this.Close();
             pnlTopBar.Controls.Add(btnClose);
+
             // --- LEFT PANEL: PRODUCT CATALOG ---
             Panel pnlLeft = new Panel { Location = new Point(20, 80), Size = new Size(650, 650), BackColor = Color.White };
             this.Controls.Add(pnlLeft);
@@ -115,12 +112,14 @@ namespace ComputerShopManagement.Views
             Panel pnlRight = new Panel { Location = new Point(690, 80), Size = new Size(490, 650), BackColor = Color.White };
             this.Controls.Add(pnlRight);
 
-            Label lblCart = new Label { Text = "Current Cart", Font = new Font("Segoe UI Semibold", 14), ForeColor = deepText, AutoSize = true, Location = new Point(20, 20) };
+            Label lblCart = new Label { Text = "Current Cart (Double Click to Remove by 1)", Font = new Font("Segoe UI Semibold", 14), ForeColor = deepText, AutoSize = true, Location = new Point(20, 20) };
             pnlRight.Controls.Add(lblCart);
 
             dgvCart = CreateModernGrid();
             dgvCart.Location = new Point(20, 60);
             dgvCart.Size = new Size(450, 310);
+            dgvCart.DataSource = _cartItems; // Bind directly
+            dgvCart.CellDoubleClick += DgvCart_CellDoubleClick; // Hook up the removal event
             pnlRight.Controls.Add(dgvCart);
 
             Label lblPhone = new Label { Text = "Customer Phone:", Font = new Font("Segoe UI", 16), ForeColor = Color.Gray, AutoSize = true, Location = new Point(20, 390) };
@@ -135,28 +134,16 @@ namespace ComputerShopManagement.Views
             lblTotalAmount = new Label { Text = "$0.00", Font = new Font("Segoe UI Semibold", 16), ForeColor = techBlue, AutoSize = true, Location = new Point(300, 490) };
             pnlRight.Controls.Add(lblTotalAmount);
 
-            // --- CUSTOM PROCESS PAYMENT BUTTON (Fixed Margins & 20% Radius) ---
-            btnCheckout = new Panel
-            {
-                Size = new Size(450, 60),
-                Location = new Point(20, 555), // Shifted UP to prevent sticking to the bottom
-                Cursor = Cursors.Hand
-            };
-
-            // Hover logic for the custom button
+            btnCheckout = new Panel { Size = new Size(450, 60), Location = new Point(20, 555), Cursor = Cursors.Hand };
             btnCheckout.MouseEnter += (s, e) => { isCheckoutHovered = true; btnCheckout.Invalidate(); };
             btnCheckout.MouseLeave += (s, e) => { isCheckoutHovered = false; btnCheckout.Invalidate(); };
             btnCheckout.Click += BtnCheckout_Click;
-
-            // Custom painting for smooth rounded corners and dark green color
             btnCheckout.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
                 Rectangle rect = new Rectangle(0, 0, btnCheckout.Width - 1, btnCheckout.Height - 1);
-
-                // Calculates border radius dynamically at exactly 20% of the height (12px)
                 int radius = (int)(btnCheckout.Height * 0.20);
 
                 using (GraphicsPath path = new GraphicsPath())
@@ -167,7 +154,6 @@ namespace ComputerShopManagement.Views
                     path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90);
                     path.CloseFigure();
 
-                    // Darker Emerald Green standard state, slightly lighter on hover
                     Color cNormal = Color.FromArgb(34, 153, 84);
                     Color cHover = Color.FromArgb(46, 204, 113);
 
@@ -177,7 +163,6 @@ namespace ComputerShopManagement.Views
                     }
                 }
 
-                // Perfectly centered light bold text
                 using (Font btnFont = new Font("Segoe UI Semibold", 16))
                 {
                     StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
@@ -185,6 +170,8 @@ namespace ComputerShopManagement.Views
                 }
             };
             pnlRight.Controls.Add(btnCheckout);
+
+            FormatCartGrid();
         }
 
         private DataGridView CreateModernGrid()
@@ -235,13 +222,7 @@ namespace ComputerShopManagement.Views
                 {
                     while (reader.Read())
                     {
-                        products.Add(new Product
-                        {
-                            ProductID = Convert.ToInt32(reader["productID"]),
-                            Name = reader["name"].ToString(),
-                            Price = Convert.ToDecimal(reader["price"]),
-                            StockQuantity = Convert.ToInt32(reader["stockQuantity"])
-                        });
+                        products.Add(new Product { ProductID = Convert.ToInt32(reader["productID"]), Name = reader["name"].ToString(), Price = Convert.ToDecimal(reader["price"]), StockQuantity = Convert.ToInt32(reader["stockQuantity"]) });
                     }
                 }
             }
@@ -253,57 +234,130 @@ namespace ComputerShopManagement.Views
             dgvProducts.Columns["Name"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
             dgvProducts.Columns["Price"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
             dgvProducts.Columns["StockQuantity"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
-
             dgvProducts.Columns["Price"].DefaultCellStyle.Format = "C2";
         }
 
+        private void FormatCartGrid()
+        {
+            // 1. Prevent WinForms from guessing the columns and crashing
+            dgvCart.AutoGenerateColumns = false;
+            dgvCart.Columns.Clear();
+
+            // 2. Explicitly define the columns and map them to our CartItem properties
+            dgvCart.Columns.Add(new DataGridViewTextBoxColumn { Name = "ProductID", DataPropertyName = "ProductID", Visible = false });
+            dgvCart.Columns.Add(new DataGridViewTextBoxColumn { Name = "Product", DataPropertyName = "Product", HeaderText = "Product", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill });
+            dgvCart.Columns.Add(new DataGridViewTextBoxColumn { Name = "Qty", DataPropertyName = "Qty", HeaderText = "Qty", AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells });
+            dgvCart.Columns.Add(new DataGridViewTextBoxColumn { Name = "Price", DataPropertyName = "Price", HeaderText = "Price", AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells });
+            dgvCart.Columns.Add(new DataGridViewTextBoxColumn { Name = "Subtotal", DataPropertyName = "Subtotal", HeaderText = "Subtotal", AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells });
+
+            // 3. Apply the currency formatting safely
+            dgvCart.Columns["Price"].DefaultCellStyle.Format = "C2";
+            dgvCart.Columns["Subtotal"].DefaultCellStyle.Format = "C2";
+        }
+
+        // ADD TO CART (With Quantity Aggregation)
         private void DgvProducts_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
             {
                 DataGridViewRow row = dgvProducts.Rows[e.RowIndex];
-                Product selectedProduct = new Product
+                int pId = Convert.ToInt32(row.Cells["ProductID"].Value);
+                string pName = row.Cells["Name"].Value.ToString();
+                decimal pPrice = Convert.ToDecimal(row.Cells["Price"].Value);
+                int stock = Convert.ToInt32(row.Cells["StockQuantity"].Value);
+
+                var existingItem = _cartItems.FirstOrDefault(c => c.ProductID == pId);
+
+                if (existingItem != null)
                 {
-                    ProductID = Convert.ToInt32(row.Cells["ProductID"].Value),
-                    Name = row.Cells["Name"].Value.ToString(),
-                    Price = Convert.ToDecimal(row.Cells["Price"].Value),
-                    StockQuantity = Convert.ToInt32(row.Cells["StockQuantity"].Value)
-                };
+                    if (existingItem.Qty >= stock)
+                    {
+                        MessageBox.Show("Cannot add more. Exceeds available stock.", "Stock Limit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                    existingItem.Qty++;
+                }
+                else
+                {
+                    if (stock <= 0)
+                    {
+                        MessageBox.Show("Item is out of stock.", "Stock Limit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                    _cartItems.Add(new CartItem { ProductID = pId, Product = pName, Qty = 1, Price = pPrice });
+                }
 
-                _controller.AddItemsToInvoice(selectedProduct, 1);
-                _cartBindingList.Add(new { Product = selectedProduct.Name, Qty = 1, Price = selectedProduct.Price, Subtotal = selectedProduct.Price });
-
-                RefreshCartUI();
+                _cartItems.ResetBindings(); // Forces the DataGrid to recalculate the subtotal visually
+                UpdateTotalAmount();
             }
         }
 
-        private void RefreshCartUI()
+        // REMOVE FROM CART (Decrease Quantity)
+        private void DgvCart_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            dgvCart.DataSource = null;
-            dgvCart.DataSource = _cartBindingList;
+            if (e.RowIndex >= 0)
+            {
+                var item = _cartItems[e.RowIndex];
+                item.Qty--;
 
-            dgvCart.Columns["Product"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-            dgvCart.Columns["Qty"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
-            dgvCart.Columns["Price"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
-            dgvCart.Columns["Subtotal"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
+                if (item.Qty <= 0)
+                {
+                    _cartItems.Remove(item);
+                }
 
-            dgvCart.Columns["Price"].DefaultCellStyle.Format = "C2";
-            dgvCart.Columns["Subtotal"].DefaultCellStyle.Format = "C2";
+                _cartItems.ResetBindings();
+                UpdateTotalAmount();
+            }
+        }
 
-            decimal total = _controller.CalculateFinalTotal();
+        private void UpdateTotalAmount()
+        {
+            decimal total = _cartItems.Sum(item => item.Subtotal);
             lblTotalAmount.Text = total.ToString("C2");
+        }
+
+        // Smart Database Lookup for Customer ID
+        private int GetOrCreateCustomer(string phone)
+        {
+            if (string.IsNullOrWhiteSpace(phone)) return 1; // ID 1 is our Walk-in Customer
+
+            using (var conn = new DatabaseContext().GetConnection())
+            {
+                conn.Open();
+                // Check if customer exists
+                SqlCommand checkCmd = new SqlCommand("SELECT customerID FROM Customer WHERE phone = @phone", conn);
+                checkCmd.Parameters.AddWithValue("@phone", phone);
+                object result = checkCmd.ExecuteScalar();
+
+                if (result != null) return Convert.ToInt32(result);
+
+                // If not, silently create a new profile for them so the Foreign Key doesn't crash
+                SqlCommand insertCmd = new SqlCommand("INSERT INTO Customer (fullName, email, phone) OUTPUT INSERTED.customerID VALUES ('New Customer', 'none', @phone)", conn);
+                insertCmd.Parameters.AddWithValue("@phone", phone);
+                return (int)insertCmd.ExecuteScalar();
+            }
         }
 
         private void BtnCheckout_Click(object sender, EventArgs e)
         {
-            if (_controller.CurrentInvoice.Details.Count == 0)
+            if (_cartItems.Count == 0)
             {
                 MessageBox.Show("The cart is empty.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            _controller.CurrentInvoice.CustomerID = string.IsNullOrEmpty(txtCustomerPhone.Text) ? 1 : 2;
+            // 1. Rebuild the Controller's Invoice Details directly from our aggregated Cart
+            _controller.CurrentInvoice.Details.Clear();
+            foreach (var item in _cartItems)
+            {
+                Product p = new Product { ProductID = item.ProductID, Price = item.Price };
+                _controller.AddItemsToInvoice(p, item.Qty);
+            }
 
+            // 2. Fetch valid Customer ID to prevent Foreign Key crashes
+            _controller.CurrentInvoice.CustomerID = GetOrCreateCustomer(txtCustomerPhone.Text.Trim());
+
+            // 3. Execute Transaction
             bool success = _controller.ProcessPayment();
 
             if (success)
@@ -313,7 +367,7 @@ namespace ComputerShopManagement.Views
             }
             else
             {
-                MessageBox.Show("Transaction failed. Please check stock availability.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Transaction failed. An error occurred in the database.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }
