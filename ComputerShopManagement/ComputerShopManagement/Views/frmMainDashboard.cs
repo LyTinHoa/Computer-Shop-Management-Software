@@ -138,7 +138,7 @@ namespace ComputerShopManagement.Views
             btnInventory = CreateNavButton("📦  Inventory Manager", 0);
             btnCustomers = CreateNavButton("👥  Customers", 0);
             btnEmployees = CreateNavButton("👔  Employee Admin", 0);
-            btnReports = CreateNavButton("📊  Reports & Analytics", 0);
+            btnReports = CreateNavButton("📊  Reports/Analytics", 0);
 
             btnLogout = CreateNavButton("🚪  Logout", 0);
             btnLogout.Size = new Size(310, 60);

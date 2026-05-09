@@ -85,3 +85,4 @@ INSERT INTO Products (name, category, price, stockQuantity) VALUES
 ('Samsung 990 PRO 2TB SSD', 'Storage', 169.99, 50),
 ('Corsair Vengeance 32GB RAM', 'Memory', 110.00, 40);
 GO
+
