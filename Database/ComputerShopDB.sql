@@ -1,5 +1,6 @@
 -- Create the main database
 CREATE DATABASE ComputerShopDB;
+GO
 
 USE ComputerShopDB;
 
@@ -63,3 +64,24 @@ CREATE TABLE InvoiceDetails (
     CONSTRAINT FK_InvoiceDetails_Invoice FOREIGN KEY (invoiceID) REFERENCES Invoice(invoiceID),
     CONSTRAINT FK_InvoiceDetails_Products FOREIGN KEY (productID) REFERENCES Products(productID)
 );
+
+-- The SHA-256 hash for 'password123' is:
+-- ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f
+
+INSERT INTO Staff (fullName, username, password, role)
+VALUES
+('Alice Owner', 'manager', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Manager'),
+('Bob Register', 'sales', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Sales'),
+('Charlie Stock', 'inventory', 'ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f', 'Inventory');
+GO
+
+-- Add a dummy customer so the invoice doesn't crash on the Foreign Key
+INSERT INTO Customer (fullName, email, phone) VALUES ('Walk-in Customer', 'none@none.com', '0000000000');
+
+-- Add some premium tech products
+INSERT INTO Products (name, category, price, stockQuantity) VALUES
+('NVIDIA RTX 4090 GPU', 'Graphics Card', 1599.99, 10),
+('Intel Core i9-13900K', 'CPU', 589.50, 25),
+('Samsung 990 PRO 2TB SSD', 'Storage', 169.99, 50),
+('Corsair Vengeance 32GB RAM', 'Memory', 110.00, 40);
+GO

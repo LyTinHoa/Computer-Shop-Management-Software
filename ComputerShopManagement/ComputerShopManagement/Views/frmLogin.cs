@@ -253,6 +253,17 @@ namespace ComputerShopManagement.Views
                 e.Graphics.DrawLine(borderPen, 0, p.Height - 1, p.Width, p.Height - 1);
             }
         }
+        // --- Allows pressing the "Enter" key to submit the login form ---
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Enter)
+            {
+                // Triggers the login button logic automatically
+                btnSubmit_Click(this, EventArgs.Empty);
+                return true; // Tells Windows we handled the key press
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
 
         private void btnSubmit_Click(object sender, EventArgs e)
         {
@@ -272,7 +283,10 @@ namespace ComputerShopManagement.Views
 
             if (isAuthenticated)
             {
-                MessageBox.Show($"Welcome, {_controller.CurrentUser.FullName}!", "Login Successful", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // Create the dashboard and pass the authenticated user data to it
+                frmMainDashboard dashboard = new frmMainDashboard(_controller.CurrentUser);
+                dashboard.Show();
+
                 this.Hide();
             }
             else
