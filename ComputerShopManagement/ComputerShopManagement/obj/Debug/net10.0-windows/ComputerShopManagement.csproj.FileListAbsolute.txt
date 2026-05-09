@@ -165,3 +165,4 @@ C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManage
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.genruntimeconfig.cache
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ref\ComputerShopManagement.dll
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.CartItem.resources
+C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmInventory.resources
