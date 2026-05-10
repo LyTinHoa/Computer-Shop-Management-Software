@@ -169,3 +169,6 @@ D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management
 D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmLogin.resources
 D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmMainDashboard.resources
 D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.CartItem.resources
+D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmInventory.resources
+D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmMainDashboard.resources
+D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmSales.resources
