@@ -19,7 +19,8 @@ namespace ComputerShopManagement.Controllers
         }
 
         // Validates credentials against the database
-        public bool Authenticate(string username, string password)
+        // Validates credentials against the database and returns a specific status code
+        public int Authenticate(string username, string password)
         {
             using (var connection = _dbContext.GetConnection())
             {
@@ -45,12 +46,19 @@ namespace ComputerShopManagement.Controllers
                                 Username = reader["username"].ToString(),
                                 Role = reader["role"].ToString()
                             };
-                            return true;
+                            return 1; // Success
                         }
+                        else
+                        {
+                            return -2; // Username exists, but Password is incorrect
+                        }
+                    }
+                    else
+                    {
+                        return -1; // Username does not exist
                     }
                 }
             }
-            return false;
         }
 
         // Logs out user

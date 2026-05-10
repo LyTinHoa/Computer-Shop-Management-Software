@@ -279,20 +279,19 @@ namespace ComputerShopManagement.Views
                 return;
             }
 
-            bool isAuthenticated = _controller.Authenticate(username, password);
+            // Calls the controller which now returns an integer status code
+            int authStatus = _controller.Authenticate(username, password);
 
-            if (isAuthenticated)
+            if (authStatus == 1) // 1 = Success
             {
                 // Create the dashboard and pass the authenticated user data to it
                 frmMainDashboard dashboard = new frmMainDashboard(_controller.CurrentUser);
                 dashboard.Show();
-
                 this.Hide();
             }
             else
             {
                 _loginAttempts++;
-                lblError.Text = "Invalid credentials. Please try again.";
                 lblError.Visible = true;
 
                 if (_loginAttempts > 0)
@@ -301,7 +300,18 @@ namespace ComputerShopManagement.Views
                     lblAttempts.Visible = true;
                 }
 
-                clearFields();
+                // Determine error message based on the specific failure
+                if (authStatus == -1)
+                {
+                    lblError.Text = "Username not found. Please try again.";
+                }
+                else if (authStatus == -2)
+                {
+                    lblError.Text = "Incorrect password. Please try again.";
+                }
+
+                // Clear and focus the exact fields based on the error
+                clearFields(authStatus);
 
                 if (_loginAttempts >= 3)
                 {
@@ -311,10 +321,22 @@ namespace ComputerShopManagement.Views
             }
         }
 
-        public void clearFields()
+        // Handles the targeted clearing and focusing based on the exact error
+        public void clearFields(int status)
         {
-            txtPassword.Clear();
-            txtUsername.Focus();
+            if (status == -2)
+            {
+                // Password was wrong: Clear only password, focus on password
+                txtPassword.Clear();
+                txtPassword.Focus();
+            }
+            else
+            {
+                // Username was wrong (or any other error): Clear both, focus on username
+                txtUsername.Clear();
+                txtPassword.Clear();
+                txtUsername.Focus();
+            }
         }
     }
 }
