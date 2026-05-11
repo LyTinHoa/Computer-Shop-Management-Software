@@ -99,39 +99,70 @@ namespace ComputerShopManagement.Views
             int pad = 2; // 2px invisible grip padding
 
             // --- ABSOLUTE GEOMETRY ---
-            pnlTopBar = new Panel { Location = new Point(pad, pad), Size = new Size(this.ClientSize.Width - (pad * 2), 60), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
+            pnlTopBar = new Panel { Location = new Point(pad, pad), Size = new Size(this.ClientSize.Width - (pad * 2), 80), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             pnlTopBar.MouseDown += DragWindow_MouseDown;
             this.Controls.Add(pnlTopBar);
 
-            Panel pnlBackground = new Panel { Location = new Point(pad, pad + 60), Size = new Size(this.ClientSize.Width - (pad * 2), this.ClientSize.Height - (pad * 2) - 60), BackColor = Color.FromArgb(245, 246, 250), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
-            this.Controls.Add(pnlBackground);
+            Panel pnlBackground = new Panel { Location = new Point(pad, pad + 80), Size = new Size(this.ClientSize.Width - (pad * 2), this.ClientSize.Height - (pad * 2) - 80), BackColor = Color.FromArgb(245, 246, 250), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right }; this.Controls.Add(pnlBackground);
 
-            // --- TOP BAR CONTENTS ---
-            Label lblTitle = new Label { Text = "BitTekk | Inventory Manager", Font = new Font("Segoe UI Semibold", 16), ForeColor = deepText, AutoSize = true, Location = new Point(20, 15) };
+            // --- TOP BAR CONTENTS (Matches Sales/Dashboard Style) ---
+            pnlTopBar.Paint += (s, e) => {
+                e.Graphics.Clear(Color.White);
+                e.Graphics.DrawLine(new Pen(Color.FromArgb(230, 230, 230), 1), 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
+            };
+
+            Label lblTitle = new Label { Text = "BitTekk | Inventory Manager", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(20, 0, 0, 0), Font = new Font("Segoe UI", 24, FontStyle.Bold), ForeColor = deepText, BackColor = Color.Transparent };
             lblTitle.MouseDown += DragWindow_MouseDown;
             pnlTopBar.Controls.Add(lblTitle);
 
-            Button btnClose = new Button { Text = "×", Font = new Font("Segoe UI", 16), ForeColor = Color.Gray, FlatStyle = FlatStyle.Flat, Size = new Size(40, 40), Location = new Point(pnlTopBar.Width - 45, 10), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, TextAlign = ContentAlignment.MiddleCenter, Padding = new Padding(2, 0, 0, 0) };
-            btnClose.FlatAppearance.BorderSize = 0;
-            btnClose.MouseEnter += (s, e) => { btnClose.ForeColor = Color.White; btnClose.BackColor = Color.Red; };
-            btnClose.MouseLeave += (s, e) => { btnClose.ForeColor = Color.Gray; btnClose.BackColor = Color.White; };
-            btnClose.Click += (s, e) =>
-            {
+            Panel pnlWindowControls = new Panel { Dock = DockStyle.Right, Width = 150 };
+            pnlTopBar.Controls.Add(pnlWindowControls);
+            pnlWindowControls.BringToFront();
+
+            Action<Button, string> SetupWindowBtn = (btn, type) => {
+                btn.Size = new Size(50, 45); // Matched to Sales View
+                btn.Location = new Point(type == "Min" ? 0 : type == "Max" ? 50 : 100, 0);
+                btn.FlatStyle = FlatStyle.Flat;
+                btn.FlatAppearance.BorderSize = 0;
+                btn.Cursor = Cursors.Hand;
+                btn.Paint += (s, e) => {
+                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                    using (Pen pen = new Pen(type == "Close" && btn.BackColor == Color.FromArgb(231, 76, 60) ? Color.White : Color.FromArgb(80, 80, 80), 2.5f))
+                    {
+                        int cx = 25, cy = 22; // Matched to Sales View
+                        if (type == "Min") e.Graphics.DrawLine(pen, cx - 7, cy + 5, cx + 7, cy + 5);
+                        else if (type == "Max") e.Graphics.DrawRectangle(pen, cx - 6, cy - 5, 12, 10);
+                        else if (type == "Close")
+                        {
+                            e.Graphics.DrawLine(pen, cx - 6, cy - 6, cx + 6, cy + 6);
+                            e.Graphics.DrawLine(pen, cx + 6, cy - 6, cx - 6, cy + 6);
+                        }
+                    }
+                };
+                btn.MouseEnter += (s, e) => { btn.BackColor = type == "Close" ? Color.FromArgb(231, 76, 60) : Color.FromArgb(220, 220, 220); };
+                btn.MouseLeave += (s, e) => { btn.BackColor = Color.White; };
+            };
+
+            Button btnMin = new Button(); SetupWindowBtn(btnMin, "Min");
+            btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
+
+            btnMaximize = new Button(); SetupWindowBtn(btnMaximize, "Max");
+            btnMaximize.Click += (s, e) => ToggleMaximize();
+
+            Button btnClose = new Button(); SetupWindowBtn(btnClose, "Close");
+            btnClose.Click += (s, e) => {
                 if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     this.Close();
                 }
             };
-            pnlTopBar.Controls.Add(btnClose);
+            btnClose.MouseEnter += (s, e) => btnClose.Invalidate();
 
-            btnMaximize = new Button { Text = "☐", Font = new Font("Segoe UI", 16), ForeColor = Color.Gray, FlatStyle = FlatStyle.Flat, Size = new Size(40, 40), Location = new Point(pnlTopBar.Width - 85, 10), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, Padding = new Padding(2, 0, 0, 0) };
-            btnMaximize.FlatAppearance.BorderSize = 0;
-            btnMaximize.MouseEnter += (s, e) => { btnMaximize.BackColor = Color.FromArgb(235, 235, 235); };
-            btnMaximize.MouseLeave += (s, e) => { btnMaximize.BackColor = Color.White; };
-            btnMaximize.Click += (s, e) => ToggleMaximize();
-            pnlTopBar.Controls.Add(btnMaximize);
+            pnlWindowControls.Controls.Add(btnClose);
+            pnlWindowControls.Controls.Add(btnMaximize);
+            pnlWindowControls.Controls.Add(btnMin);
+
             pnlTopBar.DoubleClick += (s, e) => ToggleMaximize();
-
             // --- BACKGROUND CONTENTS ---
             Panel pnlLeft = new Panel { Location = new Point(20, 20), Size = new Size(pnlBackground.Width - 480, pnlBackground.Height - 40), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
             pnlBackground.Controls.Add(pnlLeft);
@@ -212,13 +243,67 @@ namespace ComputerShopManagement.Views
 
         private DataGridView CreateModernGrid()
         {
-            DataGridView grid = new DataGridView { BackgroundColor = Color.White, BorderStyle = BorderStyle.None, CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal, ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None, EnableHeadersVisualStyles = false, RowHeadersVisible = false, AllowUserToAddRows = false, AllowUserToResizeColumns = false, AllowUserToResizeRows = false, ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing, ColumnHeadersHeight = 45, SelectionMode = DataGridViewSelectionMode.FullRowSelect, ReadOnly = true, AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill };
-            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True; grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
-            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250); grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(44, 62, 80); grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 11);
-            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11); grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(235, 245, 251); grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(44, 62, 80); grid.DefaultCellStyle.Padding = new Padding(5, 10, 5, 10);
+            DataGridView grid = new DataGridView
+            {
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+                ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None,
+                EnableHeadersVisualStyles = false,
+                RowHeadersVisible = false,
+                AllowUserToAddRows = false,
+                AllowUserToResizeColumns = false,
+                AllowUserToResizeRows = false,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
+                ColumnHeadersHeight = 45,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                ReadOnly = true,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+            };
+
+            grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+
+            // 1. Set Standard Header Colors
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(44, 62, 80);
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 11);
+
+            // 2. FIX: Stop header from highlighting blue when a cell's content is clicked
+            grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(245, 246, 250);
+            grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(44, 62, 80);
+
+            // 3. Set Standard Cell Colors
+            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11);
+            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(235, 245, 251);
+            grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(44, 62, 80);
+            grid.DefaultCellStyle.Padding = new Padding(5, 10, 5, 10);
+
+            // 4. FIX: Add events to manually highlight the header ONLY when it is physically pressed
+            grid.CellMouseDown += (s, e) => {
+                // e.RowIndex == -1 means the user clicked the Header Row
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
+                {
+                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(225, 230, 235); // Apply darker highlight
+                }
+            };
+
+            grid.CellMouseUp += (s, e) => {
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
+                {
+                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250); // Revert to normal
+                }
+            };
+
+            grid.CellMouseLeave += (s, e) => {
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
+                {
+                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250); // Revert to normal if mouse leaves while pressing
+                }
+            };
+
             return grid;
         }
-
         private void LoadInventoryData()
         {
             DatabaseContext db = new DatabaseContext(); System.Data.DataTable dt = new System.Data.DataTable();
@@ -230,9 +315,17 @@ namespace ComputerShopManagement.Views
             dgvInventory.DataSource = dt;
 
             dgvInventory.Columns["productID"].Visible = false; dgvInventory.Columns["cpu"].Visible = false; dgvInventory.Columns["ram"].Visible = false; dgvInventory.Columns["storage"].Visible = false; dgvInventory.Columns["gpu"].Visible = false;
-            dgvInventory.Columns["Name"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill; dgvInventory.Columns["Category"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells; dgvInventory.Columns["Price"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells; dgvInventory.Columns["Stock"].AutoSizeMode = DataGridViewAutoSizeColumnMode.DisplayedCells;
-            dgvInventory.Columns["Price"].DefaultCellStyle.Format = "C2";
+            dgvInventory.Columns["Name"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
+            // Use AllCells and disable wrapping to ensure sort arrows don't compress the text
+            dgvInventory.Columns["Category"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvInventory.Columns["Category"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+
+            dgvInventory.Columns["Price"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvInventory.Columns["Price"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+
+            dgvInventory.Columns["Stock"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+            dgvInventory.Columns["Stock"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
             // Loop for red highlighting has been fully removed.
         }
 
