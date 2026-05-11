@@ -31,13 +31,30 @@ namespace ComputerShopManagement.Views
         private InventoryController _controller;
         private Staff _currentUser;
 
-        private Panel pnlTopBar;
+        // UI Layout Elements
+        private Panel pnlTopBar, pnlBackground, pnlLeft, pnlRight;
+        private Label lblCatalog, lblFormTitle, lblSpecs;
         private DataGridView dgvInventory;
         private TextBox txtName, txtCategory, txtPrice, txtStock;
         private TextBox txtCpu, txtRam, txtStorage, txtGpu;
-        private Panel btnAddProduct, btnClearForm;
+        private Panel btnAddProduct, btnClearForm, btnBack;
         private Button btnMaximize;
         private bool isAddHovered = false, isClearHovered = false;
+
+        // Responsive Scale Trackers
+        private float _btnBackScale = 1.0f;
+        private float _filterScale = 1.0f;
+
+        // Helper to track and scale dynamically generated inputs
+        private class InputLayout
+        {
+            public Label Lbl;
+            public TextBox Txt;
+            public int BaseY;
+            public int BaseWidth;
+            public int BaseXOffset;
+        }
+        private List<InputLayout> rightInputs = new List<InputLayout>();
 
         public frmInventory(Staff currentUser)
         {
@@ -50,6 +67,9 @@ namespace ComputerShopManagement.Views
 
             SetupModernInventoryUI();
             LoadInventoryData();
+
+            // Trigger initial layout math
+            this.OnResize(EventArgs.Empty);
         }
 
         protected override CreateParams CreateParams
@@ -95,17 +115,16 @@ namespace ComputerShopManagement.Views
             this.BackColor = Color.FromArgb(41, 128, 185);
 
             Color deepText = Color.FromArgb(44, 62, 80);
+            int pad = 2;
 
-            int pad = 2; // 2px invisible grip padding
-
-            // --- ABSOLUTE GEOMETRY ---
+            // --- TOP BAR ---
             pnlTopBar = new Panel { Location = new Point(pad, pad), Size = new Size(this.ClientSize.Width - (pad * 2), 80), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
             pnlTopBar.MouseDown += DragWindow_MouseDown;
             this.Controls.Add(pnlTopBar);
 
-            Panel pnlBackground = new Panel { Location = new Point(pad, pad + 80), Size = new Size(this.ClientSize.Width - (pad * 2), this.ClientSize.Height - (pad * 2) - 80), BackColor = Color.FromArgb(245, 246, 250), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right }; this.Controls.Add(pnlBackground);
+            pnlBackground = new Panel { Location = new Point(pad, pad + 80), Size = new Size(this.ClientSize.Width - (pad * 2), this.ClientSize.Height - (pad * 2) - 80), BackColor = Color.FromArgb(245, 246, 250), Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+            this.Controls.Add(pnlBackground);
 
-            // --- TOP BAR CONTENTS ---
             pnlTopBar.Paint += (s, e) => {
                 e.Graphics.Clear(Color.White);
                 e.Graphics.DrawLine(new Pen(Color.FromArgb(230, 230, 230), 1), 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
@@ -120,7 +139,7 @@ namespace ComputerShopManagement.Views
             pnlWindowControls.BringToFront();
 
             Action<Button, string> SetupWindowBtn = (btn, type) => {
-                btn.Size = new Size(50, 45); // Matched to Sales View
+                btn.Size = new Size(50, 45);
                 btn.Location = new Point(type == "Min" ? 0 : type == "Max" ? 50 : 100, 0);
                 btn.FlatStyle = FlatStyle.Flat;
                 btn.FlatAppearance.BorderSize = 0;
@@ -129,7 +148,7 @@ namespace ComputerShopManagement.Views
                     e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                     using (Pen pen = new Pen(type == "Close" && btn.BackColor == Color.FromArgb(231, 76, 60) ? Color.White : Color.FromArgb(80, 80, 80), 2.5f))
                     {
-                        int cx = 25, cy = 22; // Matched to Sales View
+                        int cx = 25, cy = 22;
                         if (type == "Min") e.Graphics.DrawLine(pen, cx - 7, cy + 5, cx + 7, cy + 5);
                         else if (type == "Max") e.Graphics.DrawRectangle(pen, cx - 6, cy - 5, 12, 10);
                         else if (type == "Close")
@@ -165,29 +184,16 @@ namespace ComputerShopManagement.Views
             pnlTopBar.DoubleClick += (s, e) => ToggleMaximize();
 
             // --- BACKGROUND CONTENTS ---
-            Panel pnlLeft = new Panel { Location = new Point(20, 20), Size = new Size(pnlBackground.Width - 480, pnlBackground.Height - 40), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right };
+            pnlLeft = new Panel { BackColor = Color.White };
             pnlBackground.Controls.Add(pnlLeft);
 
-            Label lblCatalog = new Label { Text = "Product Catalog", Font = new Font("Segoe UI Semibold", 14), ForeColor = deepText, AutoSize = true, Location = new Point(20, 20) };
+            lblCatalog = new Label { Text = "Product Catalog", ForeColor = deepText, AutoSize = true };
             pnlLeft.Controls.Add(lblCatalog);
 
             dgvInventory = CreateModernGrid();
-            dgvInventory.Location = new Point(20, 60);
-            dgvInventory.Size = new Size(pnlLeft.Width - 40, pnlLeft.Height - 140);
-            dgvInventory.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
-            dgvInventory.CellClick += DgvInventory_CellClick;
+            pnlLeft.Controls.Add(dgvInventory);
 
-            // --- BACK BUTTON ---
-            Panel btnBack = new Panel
-            {
-                Size = new Size(110, 45),
-                Cursor = Cursors.Hand,
-                BackColor = Color.Transparent,
-                Location = new Point(20, pnlLeft.Height - 65),
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Left
-            };
-
-            // Enable double buffering dynamically to prevent hover flickering
+            btnBack = new Panel { Cursor = Cursors.Hand, BackColor = Color.Transparent };
             typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, btnBack, new object[] { true });
 
             bool isBackHovered = false;
@@ -200,7 +206,6 @@ namespace ComputerShopManagement.Views
                 int radius = 20;
                 Rectangle rect = new Rectangle(0, 0, btnBack.Width - 1, btnBack.Height - 1);
 
-                // Draw rounded pill shape
                 using (GraphicsPath path = new GraphicsPath())
                 {
                     path.AddArc(rect.X, rect.Y, radius, radius, 180, 90);
@@ -212,7 +217,8 @@ namespace ComputerShopManagement.Views
                     e.Graphics.FillPath(new SolidBrush(isBackHovered ? Color.FromArgb(31, 97, 141) : Color.FromArgb(41, 128, 185)), path);
                 }
 
-                TextRenderer.DrawText(e.Graphics, "← Back", new Font("Segoe UI Semibold", 12), rect, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                float fontSz = 12 * _btnBackScale;
+                TextRenderer.DrawText(e.Graphics, "← Back", new Font("Segoe UI Semibold", Math.Max(9f, fontSz)), rect, Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
 
             pnlLeft.Controls.Add(btnBack);
@@ -220,9 +226,7 @@ namespace ComputerShopManagement.Views
             // --- CUSTOM CATEGORY FILTER DROPDOWN ---
             btnFilterDropdown = new Button
             {
-                Text = "", // Removed hardcoded text to manually draw and prevent overlapping
-                Font = new Font("Segoe UI Semibold", 12),
-                Size = new Size(165, 40),
+                Text = "",
                 FlatStyle = FlatStyle.Flat,
                 BackColor = Color.White,
                 ForeColor = Color.FromArgb(44, 62, 80),
@@ -231,26 +235,24 @@ namespace ComputerShopManagement.Views
             btnFilterDropdown.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
             btnFilterDropdown.FlatAppearance.MouseOverBackColor = Color.FromArgb(245, 246, 250);
 
-            // Dynamically draw the icons and text with precise alignment
             btnFilterDropdown.Paint += (s, e) => {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
-                // 1. Draw Funnel Icon (Aligned to the left)
-                int w = 15; // Icon Width
-                int h = 15; // Icon Height
-                int x = 8; // Padding from left edge
-                int y = (btnFilterDropdown.Height - h) / 2; // Center vertically
+                int w = (int)(15 * _filterScale);
+                int h = (int)(15 * _filterScale);
+                int x = (int)(12 * _filterScale);
+                int y = (btnFilterDropdown.Height - h) / 2;
 
                 using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
                 {
                     PointF[] points = {
-                        new PointF(x, y),               // Top-Left
-                        new PointF(x + w, y),           // Top-Right
-                        new PointF(x + 10, y + 8),      // Right Taper End
-                        new PointF(x + 10, y + 12),     // Right Spout Bottom
-                        new PointF(x + 6, y + 16),      // Left Spout Bottom
-                        new PointF(x + 6, y + 8)        // Left Taper End
+                        new PointF(x, y),
+                        new PointF(x + w, y),
+                        new PointF(x + (10 * _filterScale), y + (8 * _filterScale)),
+                        new PointF(x + (10 * _filterScale), y + (12 * _filterScale)),
+                        new PointF(x + (6 * _filterScale), y + (16 * _filterScale)),
+                        new PointF(x + (6 * _filterScale), y + (8 * _filterScale))
                     };
 
                     using (Pen pen = new Pen(btnFilterDropdown.ForeColor, 1.5f) { LineJoin = System.Drawing.Drawing2D.LineJoin.Round })
@@ -261,26 +263,24 @@ namespace ComputerShopManagement.Views
                     }
                 }
 
-                // 2. Draw "By Category" Text (Centered, with slight padding from the funnel icon)
                 string text = "By Category";
                 using (SolidBrush textBrush = new SolidBrush(btnFilterDropdown.ForeColor))
                 {
                     SizeF textSize = e.Graphics.MeasureString(text, btnFilterDropdown.Font);
-                    float textX = x + w + 1; // padding from the funnel icon
+                    float textX = x + w + (1 * _filterScale);
                     float textY = (btnFilterDropdown.Height - textSize.Height) / 2;
                     e.Graphics.DrawString(text, btnFilterDropdown.Font, textBrush, textX, textY);
                 }
 
-                // 3. Draw Downward Arrow (Aligned to the right, far from the text)
-                int arrowWidth = 10;
-                int arrowHeight = 6;
-                int arrowX = btnFilterDropdown.Width - arrowWidth - 12; // 12px padding from the right edge
-                int arrowY = (btnFilterDropdown.Height - arrowHeight) / 2 + 2; // +2 to visually center the triangle
+                int arrowWidth = (int)(10 * _filterScale);
+                int arrowHeight = (int)(6 * _filterScale);
+                int arrowX = btnFilterDropdown.Width - arrowWidth - (int)(12 * _filterScale);
+                int arrowY = (btnFilterDropdown.Height - arrowHeight) / 2 + 2;
 
                 PointF[] arrowPoints = {
-                    new PointF(arrowX, arrowY),                             // Top-Left
-                    new PointF(arrowX + arrowWidth, arrowY),                // Top-Right
-                    new PointF(arrowX + (arrowWidth / 2f), arrowY + arrowHeight) // Bottom-Center
+                    new PointF(arrowX, arrowY),
+                    new PointF(arrowX + arrowWidth, arrowY),
+                    new PointF(arrowX + (arrowWidth / 2f), arrowY + arrowHeight)
                 };
 
                 using (SolidBrush arrowBrush = new SolidBrush(btnFilterDropdown.ForeColor))
@@ -290,12 +290,8 @@ namespace ComputerShopManagement.Views
             };
             pnlLeft.Controls.Add(btnFilterDropdown);
 
-            // Keeps the button anchored nicely on the right side above the grid
-            pnlLeft.Resize += (s, evt) => btnFilterDropdown.Location = new Point(pnlLeft.Width - 200, 15);
-
             pnlFilterPopup = new Panel
             {
-                Size = new Size(165, 240),
                 BackColor = Color.White,
                 BorderStyle = BorderStyle.FixedSingle,
                 Visible = false
@@ -312,80 +308,148 @@ namespace ComputerShopManagement.Views
                 Cursor = Cursors.Hand
             };
             btnResetFilter.FlatAppearance.BorderSize = 0;
-            btnResetFilter.FlatAppearance.MouseOverBackColor = Color.FromArgb(250, 235, 235); // Soft red hover highlight
+            btnResetFilter.FlatAppearance.MouseOverBackColor = Color.FromArgb(250, 235, 235);
             btnResetFilter.Click += (s, evt) => {
                 for (int i = 0; i < clbCategories.Items.Count; i++) clbCategories.SetItemChecked(i, false);
                 ApplyCategoryFilter();
             };
             pnlFilterBottom.Controls.Add(btnResetFilter);
 
-            // Container to push the checkboxes to the right using Padding
-            Panel pnlListWrapper = new Panel
-            {
-                Dock = DockStyle.Fill,
-                Padding = new Padding(12, 10, 5, 5),
-                BackColor = Color.White
-            };
-
-            clbCategories = new CheckedListBox
-            {
-                Dock = DockStyle.Fill,
-                BorderStyle = BorderStyle.None,
-                Font = new Font("Segoe UI", 11),
-                ForeColor = Color.FromArgb(44, 62, 80),
-                CheckOnClick = true,
-                BackColor = Color.White
-            };
-
-            // BeginInvoke ensures the filter applies AFTER the checkmark state actually updates
+            Panel pnlListWrapper = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12, 10, 5, 5), BackColor = Color.White };
+            clbCategories = new CheckedListBox { Dock = DockStyle.Fill, BorderStyle = BorderStyle.None, Font = new Font("Segoe UI", 11), ForeColor = Color.FromArgb(44, 62, 80), CheckOnClick = true, BackColor = Color.White };
             clbCategories.ItemCheck += (s, evt) => this.BeginInvoke((MethodInvoker)delegate { ApplyCategoryFilter(); });
 
             pnlListWrapper.Controls.Add(clbCategories);
-
             pnlFilterPopup.Controls.Add(pnlListWrapper);
             pnlFilterPopup.Controls.Add(pnlFilterBottom);
             pnlLeft.Controls.Add(pnlFilterPopup);
             pnlFilterPopup.BringToFront();
 
             btnFilterDropdown.Click += (s, evt) => {
-                // Snaps the dropdown under the button seamlessly
                 pnlFilterPopup.Location = new Point(btnFilterDropdown.Left, btnFilterDropdown.Bottom - 1);
                 pnlFilterPopup.Visible = !pnlFilterPopup.Visible;
                 pnlFilterPopup.BringToFront();
             };
-            // ---------------------------------------
-            pnlLeft.Controls.Add(dgvInventory);
 
-            Panel pnlRight = new Panel { Location = new Point(pnlBackground.Width - 440, 20), Size = new Size(420, pnlBackground.Height - 40), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right };
+            // --- RIGHT PANEL ---
+            pnlRight = new Panel { BackColor = Color.White };
             pnlBackground.Controls.Add(pnlRight);
 
-            Label lblFormTitle = new Label { Text = "Add / View Product", Font = new Font("Segoe UI Semibold", 14), ForeColor = deepText, AutoSize = true, Location = new Point(20, 20) };
+            lblFormTitle = new Label { Text = "Add / View Product", ForeColor = deepText, AutoSize = true };
             pnlRight.Controls.Add(lblFormTitle);
 
-            int startY = 70;
-            int spacing = 65;
+            txtName = CreateLabeledInput(pnlRight, "Product Name:", 70, 380);
+            txtCategory = CreateLabeledInput(pnlRight, "Category (e.g., GPU, CPU):", 135, 380);
+            txtPrice = CreateLabeledInput(pnlRight, "Price ($):", 200, 180);
+            txtStock = CreateLabeledInput(pnlRight, "Initial Stock:", 200, 180, 200);
 
-            txtName = CreateLabeledInput(pnlRight, "Product Name:", startY, 380);
-            txtCategory = CreateLabeledInput(pnlRight, "Category (e.g., GPU, CPU):", startY + spacing, 380);
-            txtPrice = CreateLabeledInput(pnlRight, "Price ($):", startY + (spacing * 2), 180);
-            txtStock = CreateLabeledInput(pnlRight, "Initial Stock:", startY + (spacing * 2), 180, 200);
-
-            Label lblSpecs = new Label { Text = "Hardware Specifications (Optional)", Font = new Font("Segoe UI Semibold", 12), ForeColor = Color.Gray, AutoSize = true, Location = new Point(20, startY + (spacing * 3) + 10) };
+            lblSpecs = new Label { Text = "Hardware Specifications (Optional)", ForeColor = Color.Gray, AutoSize = true };
             pnlRight.Controls.Add(lblSpecs);
 
-            int specY = startY + (spacing * 3) + 40;
-            txtCpu = CreateLabeledInput(pnlRight, "Processor (CPU):", specY, 180);
-            txtRam = CreateLabeledInput(pnlRight, "Memory (RAM):", specY, 180, 200);
-            txtStorage = CreateLabeledInput(pnlRight, "Storage Space:", specY + spacing, 180);
-            txtGpu = CreateLabeledInput(pnlRight, "Graphics (GPU):", specY + spacing, 180, 200);
+            txtCpu = CreateLabeledInput(pnlRight, "Processor (CPU):", 305, 180);
+            txtRam = CreateLabeledInput(pnlRight, "Memory (RAM):", 305, 180, 200);
+            txtStorage = CreateLabeledInput(pnlRight, "Storage Space:", 370, 180);
+            txtGpu = CreateLabeledInput(pnlRight, "Graphics (GPU):", 370, 180, 200);
 
-            btnAddProduct = CreateCustomButton(pnlRight, "ADD NEW PRODUCT", Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219), new Point(20, pnlRight.Height - 150), ref isAddHovered);
-            btnAddProduct.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnAddProduct = CreateCustomButton(pnlRight, "ADD NEW PRODUCT", Color.FromArgb(41, 128, 185), Color.FromArgb(52, 152, 219), ref isAddHovered);
             btnAddProduct.Click += BtnAddProduct_Click;
 
-            btnClearForm = CreateCustomButton(pnlRight, "CLEAR FORM", Color.FromArgb(149, 165, 166), Color.FromArgb(189, 195, 199), new Point(20, pnlRight.Height - 75), ref isClearHovered);
-            btnClearForm.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            btnClearForm = CreateCustomButton(pnlRight, "CLEAR FORM", Color.FromArgb(149, 165, 166), Color.FromArgb(189, 195, 199), ref isClearHovered);
             btnClearForm.Click += (s, e) => ClearForm();
+
+            // ==========================================
+            // RESPONSIVE RESIZE ENGINE
+            // ==========================================
+            this.Resize += (s, e) => {
+                if (pnlBackground == null || pnlLeft == null || pnlRight == null) return;
+
+                float rawScaleX = this.ClientSize.Width / 1200f;
+                float rawScaleY = this.ClientSize.Height / 750f;
+                float minRawScale = Math.Min(rawScaleX, rawScaleY);
+
+                // Restrict Growth Constraints (10% Left limit, 20% Right limit)
+                float scaleLeft = Math.Min(1.10f, Math.Max(1.0f, minRawScale));
+                float scaleRight = Math.Min(1.20f, Math.Max(1.0f, minRawScale));
+
+                _btnBackScale = scaleLeft;
+                _filterScale = scaleLeft;
+
+                // 1. Position and Scale Right Panel
+                int newRightWidth = (int)(420 * scaleRight);
+                int gap = 40;
+                int padEdge = 20;
+
+                pnlRight.Width = newRightWidth;
+                pnlRight.Height = pnlBackground.Height - 40;
+                pnlRight.Location = new Point(pnlBackground.Width - newRightWidth - padEdge, padEdge);
+
+                lblFormTitle.Font = new Font("Segoe UI Semibold", Math.Max(10f, 14 * scaleRight));
+                lblFormTitle.Location = new Point((int)(20 * scaleRight), (int)(20 * scaleRight));
+
+                lblSpecs.Font = new Font("Segoe UI Semibold", Math.Max(9f, 12 * scaleRight));
+                lblSpecs.Location = new Point((int)(20 * scaleRight), (int)(275 * scaleRight));
+
+                foreach (var input in rightInputs)
+                {
+                    input.Lbl.Font = new Font("Segoe UI", Math.Max(8f, 10 * scaleRight));
+                    input.Lbl.Location = new Point((int)((20 + input.BaseXOffset) * scaleRight), (int)(input.BaseY * scaleRight));
+
+                    input.Txt.Font = new Font("Segoe UI", Math.Max(9f, 12 * scaleRight));
+                    input.Txt.Size = new Size((int)(input.BaseWidth * scaleRight), (int)(30 * scaleRight));
+                    input.Txt.Location = new Point((int)((20 + input.BaseXOffset) * scaleRight), (int)(input.BaseY * scaleRight) + (int)(25 * scaleRight));
+                }
+
+                if (btnAddProduct != null)
+                {
+                    btnAddProduct.Size = new Size((int)(380 * scaleRight), (int)(55 * scaleRight));
+                    btnAddProduct.Location = new Point((int)(20 * scaleRight), pnlRight.Height - (int)(150 * scaleRight));
+                }
+
+                if (btnClearForm != null)
+                {
+                    btnClearForm.Size = new Size((int)(380 * scaleRight), (int)(55 * scaleRight));
+                    btnClearForm.Location = new Point((int)(20 * scaleRight), pnlRight.Height - (int)(75 * scaleRight));
+                }
+
+                // 2. Position and Scale Left Panel
+                pnlLeft.Width = pnlRight.Left - padEdge - gap;
+                pnlLeft.Height = pnlBackground.Height - 40;
+                pnlLeft.Location = new Point(padEdge, padEdge);
+
+                lblCatalog.Font = new Font("Segoe UI Semibold", Math.Max(10f, 14 * scaleLeft));
+                lblCatalog.Location = new Point((int)(20 * scaleLeft), (int)(20 * scaleLeft));
+
+                if (btnBack != null)
+                {
+                    btnBack.Size = new Size((int)(110 * scaleLeft), (int)(45 * scaleLeft));
+                    btnBack.Location = new Point((int)(20 * scaleLeft), pnlLeft.Height - btnBack.Height - (int)(20 * scaleLeft));
+                }
+
+                if (btnFilterDropdown != null)
+                {
+                    btnFilterDropdown.Size = new Size((int)(165 * scaleLeft), (int)(40 * scaleLeft));
+                    btnFilterDropdown.Font = new Font("Segoe UI Semibold", Math.Max(9f, 12 * scaleLeft));
+                    btnFilterDropdown.Location = new Point(pnlLeft.Width - btnFilterDropdown.Width - (int)(20 * scaleLeft), (int)(15 * scaleLeft));
+
+                    if (pnlFilterPopup != null)
+                    {
+                        pnlFilterPopup.Size = new Size((int)(165 * scaleLeft), (int)(240 * scaleLeft));
+                        pnlFilterPopup.Location = new Point(btnFilterDropdown.Left, btnFilterDropdown.Bottom - 1);
+                    }
+                }
+
+                if (dgvInventory != null)
+                {
+                    dgvInventory.Location = new Point((int)(20 * scaleLeft), (int)(60 * scaleLeft));
+                    dgvInventory.Size = new Size(pnlLeft.Width - (int)(40 * scaleLeft), btnBack.Top - dgvInventory.Top - (int)(20 * scaleLeft));
+                    dgvInventory.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", Math.Max(9f, 11 * scaleLeft));
+                    dgvInventory.DefaultCellStyle.Font = new Font("Segoe UI", Math.Max(9f, 11 * scaleLeft));
+                    dgvInventory.ColumnHeadersHeight = (int)(45 * scaleLeft);
+                }
+
+                pnlLeft.Invalidate();
+                pnlRight.Invalidate();
+            };
         }
 
         // Filter UI Components
@@ -395,30 +459,60 @@ namespace ComputerShopManagement.Views
 
         private TextBox CreateLabeledInput(Panel parent, string labelText, int y, int width, int xOffset = 0)
         {
-            Label lbl = new Label { Text = labelText, Font = new Font("Segoe UI", 10), ForeColor = Color.Gray, AutoSize = true, Location = new Point(20 + xOffset, y) };
+            Label lbl = new Label { Text = labelText, ForeColor = Color.Gray, AutoSize = true };
             parent.Controls.Add(lbl);
-            TextBox txt = new TextBox { Font = new Font("Segoe UI", 12), Location = new Point(20 + xOffset, y + 25), Size = new Size(width, 30), BorderStyle = BorderStyle.FixedSingle };
+            TextBox txt = new TextBox { BorderStyle = BorderStyle.FixedSingle };
             parent.Controls.Add(txt);
+
+            // Register original metrics into helper list for precision scaling later
+            rightInputs.Add(new InputLayout { Lbl = lbl, Txt = txt, BaseY = y, BaseWidth = width, BaseXOffset = xOffset });
             return txt;
         }
 
-        private Panel CreateCustomButton(Panel parent, string text, Color normalColor, Color hoverColor, Point location, ref bool hoverFlag)
+        private Panel CreateCustomButton(Panel parent, string text, Color normalColor, Color hoverColor, ref bool hoverFlag)
         {
-            Panel btn = new Panel { Size = new Size(380, 55), Location = location, Cursor = Cursors.Hand };
+            Panel btn = new Panel { Cursor = Cursors.Hand };
+
+            typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, btn, new object[] { true });
+
             bool localHover = false;
             btn.MouseEnter += (s, e) => { localHover = true; btn.Invalidate(); };
             btn.MouseLeave += (s, e) => { localHover = false; btn.Invalidate(); };
+
+            // Fix: Force a full repaint whenever the button is resized by the layout engine
+            btn.Resize += (s, e) => btn.Invalidate();
+
             btn.Paint += (s, e) =>
             {
-                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias; e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+                e.Graphics.Clear(Color.White);
+
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
+
                 Rectangle rect = new Rectangle(0, 0, btn.Width - 1, btn.Height - 1);
                 int radius = (int)(btn.Height * 0.20);
+
                 using (GraphicsPath path = new GraphicsPath())
                 {
-                    path.AddArc(rect.X, rect.Y, radius, radius, 180, 90); path.AddArc(rect.Right - radius, rect.Y, radius, radius, 270, 90); path.AddArc(rect.Right - radius, rect.Bottom - radius, radius, radius, 0, 90); path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90); path.CloseFigure();
-                    using (SolidBrush brush = new SolidBrush(localHover ? hoverColor : normalColor)) { e.Graphics.FillPath(brush, path); }
+                    path.AddArc(rect.X, rect.Y, radius, radius, 180, 90);
+                    path.AddArc(rect.Right - radius, rect.Y, radius, radius, 270, 90);
+                    path.AddArc(rect.Right - radius, rect.Bottom - radius, radius, radius, 0, 90);
+                    path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90);
+                    path.CloseFigure();
+
+                    using (SolidBrush brush = new SolidBrush(localHover ? hoverColor : normalColor))
+                    {
+                        e.Graphics.FillPath(brush, path);
+                    }
                 }
-                using (Font btnFont = new Font("Segoe UI Semibold", 14)) { StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center }; e.Graphics.DrawString(text, btnFont, Brushes.White, rect, sf); }
+
+                // Dynamic font based on actual button height
+                float btnFontSize = Math.Max(10f, btn.Height * 0.25f);
+                using (Font btnFont = new Font("Segoe UI Semibold", btnFontSize))
+                {
+                    StringFormat sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+                    e.Graphics.DrawString(text, btnFont, Brushes.White, rect, sf);
+                }
             };
             parent.Controls.Add(btn);
             return btn;
@@ -438,7 +532,6 @@ namespace ComputerShopManagement.Views
                 AllowUserToResizeColumns = false,
                 AllowUserToResizeRows = false,
                 ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing,
-                ColumnHeadersHeight = 45,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 ReadOnly = true,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
@@ -447,44 +540,27 @@ namespace ComputerShopManagement.Views
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
-            // 1. Set Standard Header Colors
             grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(245, 246, 250);
             grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(44, 62, 80);
-            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 11);
-
-            // 2. Stop header from highlighting blue when a cell's content is clicked
             grid.ColumnHeadersDefaultCellStyle.SelectionBackColor = Color.FromArgb(245, 246, 250);
             grid.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.FromArgb(44, 62, 80);
 
-            // 3. Set Standard Cell Colors
-            grid.DefaultCellStyle.Font = new Font("Segoe UI", 11);
             grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(235, 245, 251);
             grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(44, 62, 80);
             grid.DefaultCellStyle.Padding = new Padding(5, 10, 5, 10);
 
-            // 4. Add events to manually highlight the header ONLY when it is physically pressed
             grid.CellMouseDown += (s, e) => {
-                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
-                {
-                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(225, 230, 235); // Apply darker highlight
-                }
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0) grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(225, 230, 235);
             };
 
             grid.CellMouseUp += (s, e) => {
-                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
-                {
-                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250); // Revert to normal
-                }
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0) grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250);
             };
 
             grid.CellMouseLeave += (s, e) => {
-                if (e.RowIndex == -1 && e.ColumnIndex >= 0)
-                {
-                    grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250); // Revert to normal
-                }
+                if (e.RowIndex == -1 && e.ColumnIndex >= 0) grid.Columns[e.ColumnIndex].HeaderCell.Style.BackColor = Color.FromArgb(245, 246, 250);
             };
 
-            // Attach custom delete button rendering and click logic
             grid.CellPainting += DgvInventory_CellPainting;
             grid.CellClick += DgvInventory_DeleteClick;
 
@@ -501,7 +577,6 @@ namespace ComputerShopManagement.Views
             }
             dgvInventory.DataSource = dt;
 
-            // --- POPULATE CATEGORY FILTER LIST ---
             clbCategories.Items.Clear();
             HashSet<string> uniqueCats = new HashSet<string>();
             foreach (System.Data.DataRow row in dt.Rows)
@@ -510,12 +585,10 @@ namespace ComputerShopManagement.Views
                 if (!string.IsNullOrWhiteSpace(cat)) uniqueCats.Add(cat);
             }
             foreach (string cat in uniqueCats) clbCategories.Items.Add(cat);
-            // -------------------------------------
 
             dgvInventory.Columns["productID"].Visible = false; dgvInventory.Columns["cpu"].Visible = false; dgvInventory.Columns["ram"].Visible = false; dgvInventory.Columns["storage"].Visible = false; dgvInventory.Columns["gpu"].Visible = false;
             dgvInventory.Columns["Name"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
-            // Use AllCells and disable wrapping to ensure sort arrows don't compress the text
             dgvInventory.Columns["Category"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dgvInventory.Columns["Category"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
 
@@ -525,10 +598,8 @@ namespace ComputerShopManagement.Views
             dgvInventory.Columns["Stock"].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
             dgvInventory.Columns["Stock"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
 
-            // --- ADD DELETE COLUMN ---
             if (!dgvInventory.Columns.Contains("DeleteAction"))
             {
-                // Use a standard Text column instead of a Button column
                 DataGridViewTextBoxColumn btnDelete = new DataGridViewTextBoxColumn();
                 btnDelete.Name = "DeleteAction";
                 btnDelete.HeaderText = "Action";
@@ -540,14 +611,9 @@ namespace ComputerShopManagement.Views
 
         private void DgvInventory_CellClick(object sender, DataGridViewCellEventArgs e)
         {
-            // Ensure the row actually still exists
             if (e.RowIndex >= 0 && e.RowIndex < dgvInventory.Rows.Count)
             {
-                // Ignore click if it was on the Delete column
-                if (e.ColumnIndex >= 0 && dgvInventory.Columns[e.ColumnIndex].Name == "DeleteAction")
-                {
-                    return;
-                }
+                if (e.ColumnIndex >= 0 && dgvInventory.Columns[e.ColumnIndex].Name == "DeleteAction") return;
 
                 DataGridViewRow row = dgvInventory.Rows[e.RowIndex];
                 txtName.Text = row.Cells["Name"].Value.ToString();
@@ -581,14 +647,13 @@ namespace ComputerShopManagement.Views
             {
                 if (clbCategories.CheckedItems.Count == 0)
                 {
-                    dt.DefaultView.RowFilter = ""; // No filters applied
+                    dt.DefaultView.RowFilter = "";
                 }
                 else
                 {
                     List<string> selected = new List<string>();
                     foreach (var item in clbCategories.CheckedItems)
                     {
-                        // Safely format the category string for the SQL-like RowFilter syntax
                         selected.Add($"'{item.ToString().Replace("'", "''")}'");
                     }
                     dt.DefaultView.RowFilter = $"Category IN ({string.Join(",", selected)})";
@@ -602,19 +667,15 @@ namespace ComputerShopManagement.Views
 
         private void DgvInventory_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
         {
-            // Only draw inside the DeleteAction column, ignoring the header row
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgvInventory.Columns[e.ColumnIndex].Name == "DeleteAction")
             {
-                // Paint background/selection but skip text foreground to hide default button visuals
                 e.Paint(e.CellBounds, DataGridViewPaintParts.All & ~DataGridViewPaintParts.ContentForeground);
-
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
 
                 int paddingX = 15;
                 int paddingY = 8;
                 Rectangle rect = new Rectangle(e.CellBounds.X + paddingX, e.CellBounds.Y + paddingY, e.CellBounds.Width - (paddingX * 2), e.CellBounds.Height - (paddingY * 2));
 
-                // Dynamic border radius: 30% of the box's height
                 int radius = (int)(rect.Height * 0.30);
                 if (radius <= 0) radius = 1;
 
@@ -629,7 +690,6 @@ namespace ComputerShopManagement.Views
                     e.Graphics.FillPath(new SolidBrush(Color.FromArgb(231, 76, 60)), path);
                 }
 
-                // Draw trash vector icon
                 using (Pen pen = new Pen(Color.White, 2f))
                 {
                     int cx = e.CellBounds.X + (e.CellBounds.Width / 2);
@@ -656,21 +716,12 @@ namespace ComputerShopManagement.Views
             {
                 if (MessageBox.Show("Are you sure you want to permanently delete this product?", "Confirm Delete", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                 {
-                    // Grab the hidden productID from the clicked row
                     int productId = Convert.ToInt32(dgvInventory.Rows[e.RowIndex].Cells["productID"].Value);
-
-                    // Execute Database Deletion and check for success
                     string errorMsg;
                     bool success = _controller.DeleteProduct(productId, out errorMsg);
 
-                    if (success)
-                    {
-                        LoadInventoryData();
-                    }
-                    else
-                    {
-                        MessageBox.Show(errorMsg, "Deletion Blocked", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
+                    if (success) LoadInventoryData();
+                    else MessageBox.Show(errorMsg, "Deletion Blocked", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }

@@ -307,8 +307,7 @@ namespace ComputerShopManagement.Views
             cardRevenue = CreateKPICard("Today's Revenue", "$4,250.00", "+12% from yesterday", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96));
             pnlMainContent.Controls.Add(cardRevenue);
 
-            cardOrders = CreateKPICard("Active Orders", "14", "3 awaiting fulfillment", Color.FromArgb(52, 152, 219), techBlue);
-            pnlMainContent.Controls.Add(cardOrders);
+            cardOrders = CreateKPICard("Transactions Today", "24", "Avg. Value: $175.00", Color.FromArgb(52, 152, 219), techBlue); pnlMainContent.Controls.Add(cardOrders);
 
             cardStock = CreateKPICard("Low Stock Alerts", "2", "Requires immediate review", dangerRed, Color.FromArgb(192, 57, 43));
             pnlMainContent.Controls.Add(cardStock);
