@@ -135,5 +135,31 @@ namespace ComputerShopManagement.Controllers
                 cmd.ExecuteNonQuery();
             }
         }
+
+        //Retrieve only available products in inventory
+        public List<Product> GetAvailableProducts()
+        {
+            List<Product> availableItems = new List<Product>();
+            using (var connection = _dbContext.GetConnection())
+            {
+                string query = "SELECT productID, name, price, stockQuantity FROM Products WHERE stockQuantity > 0";
+                SqlCommand cmd = new SqlCommand(query, connection);
+                connection.Open();
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        availableItems.Add(new Product
+                        {
+                            ProductID = Convert.ToInt32(reader["productID"]),
+                            Name = reader["name"].ToString(),
+                            Price = Convert.ToDecimal(reader["price"]),
+                            StockQuantity = Convert.ToInt32(reader["stockQuantity"])
+                        });
+                    }
+                }
+            }
+            return availableItems;
+        }
     }
 }

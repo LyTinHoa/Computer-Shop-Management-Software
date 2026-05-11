@@ -54,13 +54,6 @@ namespace ComputerShopManagement.Views
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
 
-            _catalogProducts = new List<Product> {
-                new Product { ProductID = 1, Name = "NVIDIA RTX 4090 Founders Edition", Price = 1599.99m, StockQuantity = 5 },
-                new Product { ProductID = 2, Name = "Intel Core i9-14900K Processor", Price = 589.50m, StockQuantity = 12 },
-                new Product { ProductID = 3, Name = "Corsair 32GB DDR5 RAM", Price = 125.00m, StockQuantity = 30 },
-                new Product { ProductID = 4, Name = "Samsung 990 PRO 2TB NVMe Gen4 SSD", Price = 169.99m, StockQuantity = 20 }
-            };
-
             SetupResponsiveUI();
             LoadCatalog();
 
@@ -416,6 +409,7 @@ namespace ComputerShopManagement.Views
         private void LoadCatalog()
         {
             flpProducts.Controls.Clear();
+            _catalogProducts = _controller.Inventory.GetAvailableProducts();
             foreach (var p in _catalogProducts)
             {
                 Panel card = new Panel { Size = new Size(240, 160), BackColor = Color.Transparent, Margin = new Padding(20) };
@@ -593,6 +587,8 @@ namespace ComputerShopManagement.Views
             {
                 MessageBox.Show("Payment processed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 _controller.CurrentInvoice.Details.Clear(); RefreshCartUI();
+                LoadCatalog();
+                RefreshCartUI();
             }
             else
             {

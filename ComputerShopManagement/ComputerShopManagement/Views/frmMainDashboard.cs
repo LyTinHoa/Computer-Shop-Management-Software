@@ -38,6 +38,10 @@ namespace ComputerShopManagement.Views
 
         private Button btnSales, btnInventory, btnCustomers, btnEmployees, btnReports, btnLogout;
 
+        // UI Elements for Resizing
+        private Label lblGreeting, lblRole, lblClock, lblShift;
+        private Panel cardRevenue, cardOrders, cardStock;
+
         public frmMainDashboard(Staff loggedInUser)
         {
             InitializeComponent();
@@ -49,6 +53,9 @@ namespace ComputerShopManagement.Views
             SetupDashboardUI();
             ApplyRoleBasedAccess();
             PopulateCommandCenter();
+
+            // Trigger an initial layout refresh to ensure elements scale correctly on startup
+            this.OnResize(EventArgs.Empty);
         }
 
         protected override CreateParams CreateParams
@@ -78,13 +85,12 @@ namespace ComputerShopManagement.Views
         private void SetupDashboardUI()
         {
             this.Size = new Size(1600, 900);
+            this.MinimumSize = new Size(1200, 700); // Safety net for scaling math
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = lightGray;
-            this.Padding = new Padding(2);
 
             int sidebarWidth = 350;
-            // FIX: Shrunk the top bar height to 60px for a sleeker dashboard feel
             int topBarHeight = 60;
 
             // ==========================================
@@ -100,13 +106,12 @@ namespace ComputerShopManagement.Views
                 e.Graphics.DrawLine(new Pen(Color.FromArgb(230, 230, 230), 1), 0, pnlTopBar.Height - 1, pnlTopBar.Width, pnlTopBar.Height - 1);
             };
 
-            // Flushed Window Controls
             Panel pnlWindowControls = new Panel { Dock = DockStyle.Right, Width = 150 };
             pnlTopBar.Controls.Add(pnlWindowControls);
             pnlWindowControls.BringToFront();
 
             Action<Button, string> SetupWindowBtn = (btn, type) => {
-                btn.Size = new Size(50, topBarHeight); // Dynamically fills the new 60px height
+                btn.Size = new Size(50, topBarHeight);
                 btn.Location = new Point(type == "Min" ? 0 : type == "Max" ? 50 : 100, 0);
                 btn.FlatStyle = FlatStyle.Flat; btn.FlatAppearance.BorderSize = 0; btn.Cursor = Cursors.Hand;
                 btn.Paint += (s, e) => {
@@ -114,7 +119,7 @@ namespace ComputerShopManagement.Views
                     using (Pen pen = new Pen(type == "Close" && btn.BackColor == dangerRed ? Color.White : Color.FromArgb(80, 80, 80), 2.5f))
                     {
                         int cx = 25;
-                        int cy = topBarHeight / 2; // Perfect mathematical centering
+                        int cy = topBarHeight / 2;
                         if (type == "Min") e.Graphics.DrawLine(pen, cx - 7, cy + 5, cx + 7, cy + 5);
                         else if (type == "Max") e.Graphics.DrawRectangle(pen, cx - 6, cy - 5, 12, 10);
                         else if (type == "Close") { e.Graphics.DrawLine(pen, cx - 6, cy - 6, cx + 6, cy + 6); e.Graphics.DrawLine(pen, cx + 6, cy - 6, cx - 6, cy + 6); }
@@ -124,7 +129,9 @@ namespace ComputerShopManagement.Views
                 btn.MouseLeave += (s, e) => { btn.BackColor = Color.White; };
             };
 
-            Button btnMin = new Button(); SetupWindowBtn(btnMin, "Min"); btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
+            Button btnMin = new Button(); SetupWindowBtn(btnMin, "Min");
+            btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
+
             Button btnMax = new Button(); SetupWindowBtn(btnMax, "Max");
             btnMax.Click += (s, e) => {
                 if (this.WindowState == FormWindowState.Normal)
@@ -137,7 +144,8 @@ namespace ComputerShopManagement.Views
                     this.WindowState = FormWindowState.Normal;
                 }
             };
-            Button btnClose = new Button(); SetupWindowBtn(btnClose, "Close"); 
+
+            Button btnClose = new Button(); SetupWindowBtn(btnClose, "Close");
             btnClose.Click += (s, e) =>
             {
                 if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -147,11 +155,13 @@ namespace ComputerShopManagement.Views
             };
             btnClose.MouseEnter += (s, e) => btnClose.Invalidate();
 
-            pnlWindowControls.Controls.Add(btnClose); pnlWindowControls.Controls.Add(btnMax); pnlWindowControls.Controls.Add(btnMin);
+            pnlWindowControls.Controls.Add(btnClose);
+            pnlWindowControls.Controls.Add(btnMax);
+            pnlWindowControls.Controls.Add(btnMin);
 
 
             // ==========================================
-            // 2. SLEEK, GRADIENT SIDEBAR
+            // 2. SLEEK, GRADIENT SIDEBAR (Scalable)
             // ==========================================
             pnlSidebar = new Panel { Dock = DockStyle.Left, Width = sidebarWidth };
             pnlSidebar.Paint += (s, e) => {
@@ -162,10 +172,13 @@ namespace ComputerShopManagement.Views
                 }
 
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                e.Graphics.DrawString("BitTekk", new Font("Segoe UI", 42, FontStyle.Bold), Brushes.White, new Point(30, 20));
 
-                // FIX: Renamed and shifted down (Y=105) to provide breathing room from the main logo
-                e.Graphics.DrawString("Computer Shop Management", new Font("Segoe UI Semibold", 10, FontStyle.Regular), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point(35, 105));
+                // Dynamically scale logo fonts based on current width
+                float titleSize = Math.Max(20f, pnlSidebar.Width * 0.12f);
+                float subSize = Math.Max(8f, pnlSidebar.Width * 0.028f);
+
+                e.Graphics.DrawString("BitTekk", new Font("Segoe UI", titleSize, FontStyle.Bold), Brushes.White, new Point((int)(pnlSidebar.Width * 0.08f), 20));
+                e.Graphics.DrawString("Computer Shop Management", new Font("Segoe UI Semibold", subSize, FontStyle.Regular), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point((int)(pnlSidebar.Width * 0.1f), (int)(20 + titleSize * 1.5f + 10)));
             };
             this.Controls.Add(pnlSidebar);
             pnlSidebar.BringToFront();
@@ -176,14 +189,19 @@ namespace ComputerShopManagement.Views
             btnEmployees = CreateNavButton("👔  Employee Admin", 380);
             btnReports = CreateNavButton("📊  Reports & Analytics", 450);
 
-            // FIX: Shortened text to "Logout"
+            // FIX: Removed Dock=Bottom. Manually positioned to keep it a perfect rectangle
             btnLogout = CreateNavButton("🚪  Logout", 0);
-            btnLogout.Dock = DockStyle.Bottom;
             btnLogout.Height = 80;
             btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
-            btnLogout.MouseEnter += (s, e) => btnLogout.BackColor = Color.FromArgb(231, 76, 60);
+            btnLogout.MouseEnter += (s, e) => btnLogout.BackColor = dangerRed;
             btnLogout.MouseLeave += (s, e) => btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
-            btnLogout.Click += (s, e) => { Application.Restart(); };
+            btnLogout.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Are you sure you want to log out?", "Confirm Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    Application.Restart();
+                }
+            };
 
             btnSales.Click += (s, e) => {
                 SalesController salesCtrl = new SalesController();
@@ -192,70 +210,138 @@ namespace ComputerShopManagement.Views
             };
             btnInventory.Click += (s, e) => OpenModule(new frmInventory(_currentUser));
 
-
             // ==========================================
             // 3. MAIN CONTENT (THE COMMAND CENTER)
             // ==========================================
             pnlMainContent = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
             this.Controls.Add(pnlMainContent);
             pnlMainContent.BringToFront();
+
+            // ==========================================
+            // 4. MASTER RESPONSIVE RESIZE EVENT
+            // ==========================================
+            this.Resize += (s, e) => {
+                // Calculate Scale Multipliers
+                float scaleX = this.ClientSize.Width / 1600f;
+                float scaleY = this.ClientSize.Height / 900f;
+                float minScale = Math.Min(scaleX, scaleY); // Prevents distortion
+
+                // A. Scale Sidebar
+                pnlSidebar.Width = (int)(350 * scaleX);
+
+                // B. Scale Navigation Buttons
+                int currentY = (int)(170 * scaleY);
+                int spacing = (int)(70 * scaleY);
+                float btnFontSize = Math.Max(10f, 14 * minScale);
+
+                foreach (Control ctrl in pnlSidebar.Controls)
+                {
+                    if (ctrl is Button btn)
+                    {
+                        btn.Font = new Font("Segoe UI Semibold", btnFontSize);
+
+                        // Force Logout to stay a rectangle at the bottom
+                        if (btn == btnLogout)
+                        {
+                            btn.Size = new Size(pnlSidebar.Width, (int)(80 * scaleY));
+                            btn.Location = new Point(0, pnlSidebar.Height - btn.Height);
+                        }
+                        else if (btn.Visible)
+                        {
+                            btn.Size = new Size(pnlSidebar.Width, (int)(65 * scaleY));
+                            btn.Location = new Point(0, currentY);
+                            currentY += spacing;
+                        }
+                    }
+                }
+                pnlSidebar.Invalidate(); // Repaint gradients and logos
+
+                // C. Scale Main Dashboard Elements (If loaded)
+                if (lblGreeting != null)
+                {
+                    // Scale Fonts
+                    lblGreeting.Font = new Font("Segoe UI", Math.Max(16f, 32 * minScale), FontStyle.Bold);
+                    lblRole.Font = new Font("Segoe UI Semibold", Math.Max(10f, 14 * minScale));
+                    lblClock.Font = new Font("Segoe UI", Math.Max(14f, 24 * minScale), FontStyle.Bold);
+                    lblShift.Font = new Font("Segoe UI Semibold", Math.Max(10f, 14 * minScale));
+
+                    // Scale Cards (Grow by ~30% natively via scaleX/scaleY)
+                    int newCardWidth = (int)(340 * scaleX);
+                    int newCardHeight = (int)(180 * scaleY);
+
+                    int totalCardsWidth = newCardWidth * 3;
+                    int gap = (pnlMainContent.Width - totalCardsWidth) / 4;
+                    if (gap < 20) gap = 20;
+
+                    // Position Header Texts
+                    int startY = (int)(40 * scaleY);
+                    lblGreeting.Location = new Point(gap, startY);
+                    lblRole.Location = new Point(gap + 5, startY + lblGreeting.Height + 10);
+
+                    // Position KPI Cards
+                    int cardY = lblRole.Bottom + (int)(40 * scaleY);
+                    cardRevenue.Size = new Size(newCardWidth, newCardHeight);
+                    cardOrders.Size = new Size(newCardWidth, newCardHeight);
+                    cardStock.Size = new Size(newCardWidth, newCardHeight);
+
+                    cardRevenue.Location = new Point(gap, cardY);
+                    cardOrders.Location = new Point(gap * 2 + newCardWidth, cardY);
+                    cardStock.Location = new Point(gap * 3 + newCardWidth * 2, cardY);
+
+                    // Position Clock explicitly BELOW the cards to prevent overlap
+                    int timeY = cardRevenue.Bottom + (int)(60 * scaleY);
+                    lblClock.Location = new Point(gap, timeY);
+                    lblShift.Location = new Point(gap + 5, lblClock.Bottom + 10);
+                }
+            };
         }
 
         private void PopulateCommandCenter()
         {
-            Label lblGreeting = new Label
-            {
-                Text = $"Welcome back, {_currentUser.FullName}",
-                Font = new Font("Segoe UI", 32, FontStyle.Bold),
-                ForeColor = deepText,
-                AutoSize = true,
-                Location = new Point(50, 40)
-            };
+            lblGreeting = new Label { Text = $"Welcome back, {_currentUser.FullName}", ForeColor = deepText, AutoSize = true };
             pnlMainContent.Controls.Add(lblGreeting);
 
-            Label lblRole = new Label
-            {
-                Text = $"System Role: {_currentUser.Role}   |   Last Login: {DateTime.Now.ToString("MMMM dd, yyyy")}",
-                Font = new Font("Segoe UI Semibold", 14),
-                ForeColor = Color.Gray,
-                AutoSize = true,
-                Location = new Point(55, 95)
-            };
+            lblRole = new Label { Text = $"System Role: {_currentUser.Role}   |   Last Login: {DateTime.Now.ToString("dd-MM-yyyy")}", ForeColor = Color.Gray, AutoSize = true };
             pnlMainContent.Controls.Add(lblRole);
 
-            Panel cardRevenue = CreateKPICard("Today's Revenue", "$4,250.00", "+12% from yesterday", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96), 50, 180);
+            cardRevenue = CreateKPICard("Today's Revenue", "$4,250.00", "+12% from yesterday", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96));
             pnlMainContent.Controls.Add(cardRevenue);
 
-            Panel cardOrders = CreateKPICard("Active Orders", "14", "3 awaiting fulfillment", Color.FromArgb(52, 152, 219), techBlue, 420, 180);
+            cardOrders = CreateKPICard("Active Orders", "14", "3 awaiting fulfillment", Color.FromArgb(52, 152, 219), techBlue);
             pnlMainContent.Controls.Add(cardOrders);
 
-            Panel cardStock = CreateKPICard("Low Stock Alerts", "2", "Requires immediate review", dangerRed, Color.FromArgb(192, 57, 43), 790, 180);
+            cardStock = CreateKPICard("Low Stock Alerts", "2", "Requires immediate review", dangerRed, Color.FromArgb(192, 57, 43));
             pnlMainContent.Controls.Add(cardStock);
 
-            Label lblQuick = new Label
-            {
-                Text = "Suggested Actions",
-                Font = new Font("Segoe UI", 18, FontStyle.Bold),
-                ForeColor = deepText,
-                AutoSize = true,
-                Location = new Point(50, 420)
-            };
-            pnlMainContent.Controls.Add(lblQuick);
+            lblClock = new Label { ForeColor = techBlue, AutoSize = true };
+            pnlMainContent.Controls.Add(lblClock);
 
-            Label lblPlaceholder = new Label
+            lblShift = new Label { ForeColor = deepText, AutoSize = true };
+            pnlMainContent.Controls.Add(lblShift);
+
+            // Update time and shift every second
+            System.Windows.Forms.Timer clockTimer = new System.Windows.Forms.Timer { Interval = 1000 };
+            clockTimer.Tick += (s, e) =>
             {
-                Text = "Quick action modules (e.g., Generate End-of-Day Report, Add New Employee) can be populated here.",
-                Font = new Font("Segoe UI", 12),
-                ForeColor = Color.Gray,
-                AutoSize = true,
-                Location = new Point(50, 460)
+                DateTime now = DateTime.Now;
+                var englishCulture = new System.Globalization.CultureInfo("en-US");
+                lblClock.Text = now.ToString("dddd, MMMM dd, yyyy  |  hh:mm:ss tt", englishCulture);
+
+                int hour = now.Hour;
+                string shiftName = "Off Hours";
+
+                if (hour >= 8 && hour < 13) shiftName = "Shift 1 (08:00 - 12:00)";
+                else if (hour >= 13 && hour < 18) shiftName = "Shift 2 (13:00 - 18:00)";
+                else if (hour >= 18 && hour < 23) shiftName = "Shift 3 (18:00 - 23:00)";
+
+                lblShift.Text = $"Current Shift: {shiftName}";
             };
-            pnlMainContent.Controls.Add(lblPlaceholder);
+            clockTimer.Start();
         }
 
-        private Panel CreateKPICard(string title, string value, string subText, Color gradientStart, Color gradientEnd, int x, int y)
+        private Panel CreateKPICard(string title, string value, string subText, Color gradientStart, Color gradientEnd)
         {
-            Panel card = new Panel { Size = new Size(340, 180), Location = new Point(x, y), BackColor = Color.Transparent };
+            Panel card = new Panel { BackColor = Color.Transparent };
 
             card.Paint += (s, e) => {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -269,9 +355,14 @@ namespace ComputerShopManagement.Views
                     }
                 }
 
-                e.Graphics.DrawString(title, new Font("Segoe UI Semibold", 14), new SolidBrush(Color.FromArgb(220, 255, 255, 255)), new Point(25, 25));
-                e.Graphics.DrawString(value, new Font("Segoe UI", 36, FontStyle.Bold), Brushes.White, new Point(20, 60));
-                e.Graphics.DrawString(subText, new Font("Segoe UI", 11), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point(25, 130));
+                // Dynamic fonts based on card height for flawless scaling
+                float titleSize = Math.Max(10f, card.Height * 0.08f);
+                float valueSize = Math.Max(18f, card.Height * 0.20f);
+                float subSize = Math.Max(8f, card.Height * 0.06f);
+
+                e.Graphics.DrawString(title, new Font("Segoe UI Semibold", titleSize), new SolidBrush(Color.FromArgb(220, 255, 255, 255)), new Point(25, (int)(card.Height * 0.13f)));
+                e.Graphics.DrawString(value, new Font("Segoe UI", valueSize, FontStyle.Bold), Brushes.White, new Point(20, (int)(card.Height * 0.33f)));
+                e.Graphics.DrawString(subText, new Font("Segoe UI", subSize), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point(25, (int)(card.Height * 0.72f)));
             };
             return card;
         }
@@ -335,15 +426,6 @@ namespace ComputerShopManagement.Views
             btnCustomers.Visible = showCustomers;
             btnEmployees.Visible = showEmployees;
             btnReports.Visible = showReports;
-
-            int currentY = 170;
-            int spacing = 70;
-
-            if (showSales) { btnSales.Location = new Point(0, currentY); currentY += spacing; }
-            if (showInventory) { btnInventory.Location = new Point(0, currentY); currentY += spacing; }
-            if (showCustomers) { btnCustomers.Location = new Point(0, currentY); currentY += spacing; }
-            if (showEmployees) { btnEmployees.Location = new Point(0, currentY); currentY += spacing; }
-            if (showReports) { btnReports.Location = new Point(0, currentY); currentY += spacing; }
         }
     }
 }
