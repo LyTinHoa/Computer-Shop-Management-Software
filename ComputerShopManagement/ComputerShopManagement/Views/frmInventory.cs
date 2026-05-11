@@ -176,6 +176,117 @@ namespace ComputerShopManagement.Views
             dgvInventory.Size = new Size(pnlLeft.Width - 40, pnlLeft.Height - 80);
             dgvInventory.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             dgvInventory.CellClick += DgvInventory_CellClick;
+            // --- CUSTOM CATEGORY FILTER DROPDOWN ---
+            btnFilterDropdown = new Button
+            {
+                Text = "       By Category  ▼", // Added extra spaces to make room for the drawn icon
+                Font = new Font("Segoe UI Semibold", 12),
+                Size = new Size(165, 40),
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(44, 62, 80), // Matches deepText
+                Cursor = Cursors.Hand
+            };
+            btnFilterDropdown.FlatAppearance.BorderColor = Color.FromArgb(200, 200, 200);
+            btnFilterDropdown.FlatAppearance.MouseOverBackColor = Color.FromArgb(245, 246, 250);
+
+            // Dynamically draw the exact funnel icon from your image
+            btnFilterDropdown.Paint += (s, e) => {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+
+                int w = 15; // Icon Width
+                int h = 15; // Icon Height
+                int x = 16; // Padding from left edge
+                int y = (btnFilterDropdown.Height - h) / 2; // Center vertically
+
+                using (System.Drawing.Drawing2D.GraphicsPath path = new System.Drawing.Drawing2D.GraphicsPath())
+                {
+                    // Map the points to perfectly match the uploaded image's shape
+                    PointF[] points = {
+                        new PointF(x, y),               // Top-Left
+                        new PointF(x + w, y),           // Top-Right
+                        new PointF(x + 10, y + 8),      // Right Taper End
+                        new PointF(x + 10, y + 12),     // Right Spout Bottom
+                        new PointF(x + 6, y + 16),      // Left Spout Bottom (Creates the angled cut)
+                        new PointF(x + 6, y + 8)        // Left Taper End
+                    };
+
+                    // The Pen with LineJoin.Round slightly softens the sharp corners to match the image
+                    using (Pen pen = new Pen(btnFilterDropdown.ForeColor, 1.5f) { LineJoin = System.Drawing.Drawing2D.LineJoin.Round })
+                    using (SolidBrush brush = new SolidBrush(btnFilterDropdown.ForeColor))
+                    {
+                        e.Graphics.FillPolygon(brush, points);
+                        e.Graphics.DrawPolygon(pen, points);
+                    }
+                }
+            };
+            pnlLeft.Controls.Add(btnFilterDropdown);
+
+            // ... (keep the rest of your pnlFilterPopup code below this exact same) ...
+            // Keeps the button anchored nicely on the right side above the grid
+            pnlLeft.Resize += (s, evt) => btnFilterDropdown.Location = new Point(pnlLeft.Width - 200, 15);
+
+            // Matched width (180) to the button
+            pnlFilterPopup = new Panel
+            {
+                Size = new Size(165, 240),
+                BackColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                Visible = false
+            };
+
+            Panel pnlFilterBottom = new Panel { Dock = DockStyle.Bottom, Height = 45, BackColor = Color.FromArgb(245, 246, 250) };
+            Button btnResetFilter = new Button
+            {
+                Text = "Reset Filters",
+                Font = new Font("Segoe UI Semibold", 10),
+                Dock = DockStyle.Fill,
+                FlatStyle = FlatStyle.Flat,
+                ForeColor = Color.FromArgb(231, 76, 60),
+                Cursor = Cursors.Hand
+            };
+            btnResetFilter.FlatAppearance.BorderSize = 0;
+            btnResetFilter.FlatAppearance.MouseOverBackColor = Color.FromArgb(250, 235, 235); // Soft red hover highlight
+            btnResetFilter.Click += (s, evt) => {
+                for (int i = 0; i < clbCategories.Items.Count; i++) clbCategories.SetItemChecked(i, false);
+                ApplyCategoryFilter();
+            };
+            pnlFilterBottom.Controls.Add(btnResetFilter);
+
+            // Container to push the checkboxes to the right using Padding
+            Panel pnlListWrapper = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12, 10, 5, 5), // The "12" pushes the checkboxes to the right
+                BackColor = Color.White
+            };
+
+            clbCategories = new CheckedListBox
+            {
+                Dock = DockStyle.Fill,
+                BorderStyle = BorderStyle.None,
+                Font = new Font("Segoe UI", 11),
+                ForeColor = Color.FromArgb(44, 62, 80),
+                CheckOnClick = true,
+                BackColor = Color.White
+            };
+            // BeginInvoke ensures the filter applies AFTER the checkmark state actually updates
+            clbCategories.ItemCheck += (s, evt) => this.BeginInvoke((MethodInvoker)delegate { ApplyCategoryFilter(); });
+
+            pnlListWrapper.Controls.Add(clbCategories);
+
+            pnlFilterPopup.Controls.Add(pnlListWrapper);
+            pnlFilterPopup.Controls.Add(pnlFilterBottom);
+            pnlLeft.Controls.Add(pnlFilterPopup);
+            pnlFilterPopup.BringToFront();
+
+            btnFilterDropdown.Click += (s, evt) => {
+                // Snaps the dropdown perfectly under the button, overlapping the bottom border slightly for a seamless look
+                pnlFilterPopup.Location = new Point(btnFilterDropdown.Left, btnFilterDropdown.Bottom - 1);
+                pnlFilterPopup.Visible = !pnlFilterPopup.Visible;
+                pnlFilterPopup.BringToFront();
+            };
+            // ---------------------------------------
             pnlLeft.Controls.Add(dgvInventory);
 
             Panel pnlRight = new Panel { Location = new Point(pnlBackground.Width - 440, 20), Size = new Size(420, pnlBackground.Height - 40), BackColor = Color.White, Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Right };
@@ -209,6 +320,10 @@ namespace ComputerShopManagement.Views
             btnClearForm.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             btnClearForm.Click += (s, e) => ClearForm();
         }
+        // Filter UI Components
+        private Button btnFilterDropdown;
+        private Panel pnlFilterPopup;
+        private CheckedListBox clbCategories;
 
         private TextBox CreateLabeledInput(Panel parent, string labelText, int y, int width, int xOffset = 0)
         {
@@ -314,6 +429,17 @@ namespace ComputerShopManagement.Views
             }
             dgvInventory.DataSource = dt;
 
+            // --- POPULATE CATEGORY FILTER LIST ---
+            clbCategories.Items.Clear();
+            HashSet<string> uniqueCats = new HashSet<string>();
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                string cat = row["Category"].ToString();
+                if (!string.IsNullOrWhiteSpace(cat)) uniqueCats.Add(cat);
+            }
+            foreach (string cat in uniqueCats) clbCategories.Items.Add(cat);
+            // -------------------------------------
+
             dgvInventory.Columns["productID"].Visible = false; dgvInventory.Columns["cpu"].Visible = false; dgvInventory.Columns["ram"].Visible = false; dgvInventory.Columns["storage"].Visible = false; dgvInventory.Columns["gpu"].Visible = false;
             dgvInventory.Columns["Name"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
 
@@ -351,6 +477,26 @@ namespace ComputerShopManagement.Views
         }
 
         private void ClearForm() { txtName.Clear(); txtCategory.Clear(); txtPrice.Clear(); txtStock.Clear(); txtCpu.Clear(); txtRam.Clear(); txtStorage.Clear(); txtGpu.Clear(); txtName.Focus(); }
+        private void ApplyCategoryFilter()
+        {
+            if (dgvInventory.DataSource is System.Data.DataTable dt)
+            {
+                if (clbCategories.CheckedItems.Count == 0)
+                {
+                    dt.DefaultView.RowFilter = ""; // No filters applied
+                }
+                else
+                {
+                    List<string> selected = new List<string>();
+                    foreach (var item in clbCategories.CheckedItems)
+                    {
+                        // Safely format the category string for the SQL-like RowFilter syntax
+                        selected.Add($"'{item.ToString().Replace("'", "''")}'");
+                    }
+                    dt.DefaultView.RowFilter = $"Category IN ({string.Join(",", selected)})";
+                }
+            }
+        }
         private void DragWindow_MouseDown(object sender, MouseEventArgs e) { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0); } }
         private void ToggleMaximize() { if (this.WindowState == FormWindowState.Normal) { this.WindowState = FormWindowState.Maximized; btnMaximize.Text = "❐"; } else { this.WindowState = FormWindowState.Normal; btnMaximize.Text = "☐"; } }
     }
