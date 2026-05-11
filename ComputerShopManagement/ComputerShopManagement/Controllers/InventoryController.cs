@@ -60,7 +60,39 @@ namespace ComputerShopManagement.Controllers
                 }
             }
         }
+        // Deletes a product, but protects against deleting products tied to existing invoices
+        public bool DeleteProduct(int productId, out string errorMessage)
+        {
+            errorMessage = string.Empty;
+            ComputerShopManagement.Models.DatabaseContext db = new ComputerShopManagement.Models.DatabaseContext();
 
+            using (var connection = db.GetConnection())
+            {
+                try
+                {
+                    string query = "DELETE FROM Products WHERE productID = @id";
+                    SqlCommand cmd = new SqlCommand(query, connection);
+                    cmd.Parameters.AddWithValue("@id", productId);
+
+                    connection.Open();
+                    cmd.ExecuteNonQuery();
+                    return true;
+                }
+                catch (SqlException ex)
+                {
+                    // Error 547 is a Foreign Key Constraint Violation
+                    if (ex.Number == 547)
+                    {
+                        errorMessage = "Cannot delete this product because it is already linked to existing sales invoices. \n\n(Deleting it would break past financial records).";
+                    }
+                    else
+                    {
+                        errorMessage = "A database error occurred: " + ex.Message;
+                    }
+                    return false;
+                }
+            }
+        }
         // Retrieves products that have a stock quantity below a certain threshold (e.g., 5)
         public List<Product> TrackLowStock()
         {
