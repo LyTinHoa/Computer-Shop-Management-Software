@@ -115,7 +115,13 @@ namespace ComputerShopManagement.Views
             btnClose.FlatAppearance.BorderSize = 0;
             btnClose.MouseEnter += (s, e) => { btnClose.ForeColor = Color.White; btnClose.BackColor = Color.Red; };
             btnClose.MouseLeave += (s, e) => { btnClose.ForeColor = Color.Gray; btnClose.BackColor = Color.White; };
-            btnClose.Click += (s, e) => this.Close();
+            btnClose.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    this.Close();
+                }
+            };
             pnlTopBar.Controls.Add(btnClose);
 
             btnMaximize = new Button { Text = "☐", Font = new Font("Segoe UI", 16), ForeColor = Color.Gray, FlatStyle = FlatStyle.Flat, Size = new Size(40, 40), Location = new Point(pnlTopBar.Width - 85, 10), Cursor = Cursors.Hand, Anchor = AnchorStyles.Top | AnchorStyles.Right, Padding = new Padding(2, 0, 0, 0) };

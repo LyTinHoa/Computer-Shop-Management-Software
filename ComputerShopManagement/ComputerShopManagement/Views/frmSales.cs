@@ -161,7 +161,16 @@ namespace ComputerShopManagement.Views
                     this.WindowState = FormWindowState.Normal;
                 }
             };
-            Button btnClose = new Button(); SetupWindowBtn(btnClose, "Close"); btnClose.Click += (s, e) => Application.Exit(); btnClose.MouseEnter += (s, e) => btnClose.Invalidate();
+            Button btnClose = new Button(); 
+            SetupWindowBtn(btnClose, "Close"); 
+            btnClose.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    Application.Exit();
+                }
+            };
+            btnClose.MouseEnter += (s, e) => btnClose.Invalidate();
 
             pnlWindowControls.Controls.Add(btnClose); pnlWindowControls.Controls.Add(btnMax); pnlWindowControls.Controls.Add(btnMin);
 

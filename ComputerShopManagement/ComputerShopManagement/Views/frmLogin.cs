@@ -141,7 +141,13 @@ namespace ComputerShopManagement.Views
             btnCloseApp = new Panel { Size = new Size(36, 36), Location = new Point(490, 15), Cursor = Cursors.Hand, BackColor = Color.White };
             btnCloseApp.MouseEnter += (s, e) => { isCloseHovered = true; btnCloseApp.Invalidate(); };
             btnCloseApp.MouseLeave += (s, e) => { isCloseHovered = false; btnCloseApp.Invalidate(); };
-            btnCloseApp.Click += (s, e) => { Application.Exit(); };
+            btnCloseApp.Click += (s, e) =>
+            {
+                if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    Application.Exit();
+                }
+            };
             btnCloseApp.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;

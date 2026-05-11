@@ -163,7 +163,6 @@ C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManage
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.pdb
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.genruntimeconfig.cache
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ref\ComputerShopManagement.dll
-C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.CartItem.resources
 C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmInventory.resources
 D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmInventory.resources
 D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmLogin.resources
@@ -172,3 +171,4 @@ D:\TDTU\Sophomore\SecondHalf\SoftwareEngineer\Finalterm\Computer-Shop-Management
 D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmInventory.resources
 D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmMainDashboard.resources
 D:\College\Coding Homework\Application Technology - C#\LT_Final_Report\Project\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmSales.resources
+C:\Users\ADMIN\source\repos\Computer-Shop-Management-Software\ComputerShopManagement\ComputerShopManagement\obj\Debug\net10.0-windows\ComputerShopManagement.Views.frmSales.resources
