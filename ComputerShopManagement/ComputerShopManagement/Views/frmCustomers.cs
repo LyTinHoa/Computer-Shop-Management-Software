@@ -228,7 +228,18 @@ namespace ComputerShopManagement.Views
             pnlLeft.Controls.Add(pnlSearchBox);
 
             dgvCustomers = CreateModernGrid();
-            pnlLeft.Controls.Add(dgvCustomers);
+
+            // 1. Create a wrapper panel that handles the smooth scrolling
+            Panel pnlGridWrapper = new Panel
+            {
+                Name = "GridWrapper",
+                BackColor = Color.White,
+                AutoScroll = true // This enables pixel-smooth scrolling!
+            };
+
+            // 2. Add the grid to the wrapper, and the wrapper to the left panel
+            pnlGridWrapper.Controls.Add(dgvCustomers);
+            pnlLeft.Controls.Add(pnlGridWrapper);
 
             btnBack = new Panel { Cursor = Cursors.Hand, BackColor = Color.Transparent };
             typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, btnBack, new object[] { true });
@@ -350,15 +361,36 @@ namespace ComputerShopManagement.Views
                     btnBack.Location = new Point((int)(20 * scaleLeft), pnlLeft.Height - btnBack.Height - (int)(20 * scaleLeft));
                 }
 
-                if (dgvCustomers != null)
+                Panel wrapper = (Panel)pnlLeft.Controls["GridWrapper"];
+                if (wrapper != null && dgvCustomers != null)
                 {
-                    dgvCustomers.Location = new Point((int)(20 * scaleLeft), (int)(65 * scaleLeft));
-                    dgvCustomers.Size = new Size(pnlLeft.Width - (int)(40 * scaleLeft), btnBack.Top - dgvCustomers.Top - (int)(20 * scaleLeft));
+                    int newWidth = pnlLeft.Width - (int)(40 * scaleLeft);
+                    int newHeight = Math.Max(100, btnBack.Top - wrapper.Top - (int)(20 * scaleLeft));
+
+                    wrapper.Location = new Point((int)(20 * scaleLeft), (int)(65 * scaleLeft));
+                    wrapper.Size = new Size(newWidth, newHeight);
+
+                    // --- ANTI-GLITCH SCROLL FIX ---
+                    // Save current scroll and snap to top before resizing child controls
+                    int currentScroll = wrapper.VerticalScroll.Value;
+                    wrapper.AutoScrollPosition = new Point(0, 0);
+
+                    dgvCustomers.Location = new Point(0, 0);
+                    dgvCustomers.Width = wrapper.ClientSize.Width;
+
+                    // Fonts
                     dgvCustomers.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", Math.Max(9f, 11 * scaleLeft));
                     dgvCustomers.DefaultCellStyle.Font = new Font("Segoe UI", Math.Max(9f, 11 * scaleLeft));
                     dgvCustomers.ColumnHeadersHeight = (int)(45 * scaleLeft);
-                }
 
+                    // --- RECALCULATE HEIGHT DYNAMICALLY ---
+                    // Now that the width and fonts have changed, the text wrapping will change. 
+                    // We must recalculate the new perfect height.
+                    RecalculateGridHeight();
+
+                    // Restore the scroll position safely
+                    wrapper.AutoScrollPosition = new Point(0, currentScroll);
+                }
                 pnlLeft.Invalidate();
                 pnlRight.Invalidate();
             };
@@ -463,7 +495,7 @@ namespace ComputerShopManagement.Views
             };
 
             // --- SCROLLING PERFORMANCE FIXES ---
-
+            grid.ScrollBars = ScrollBars.None; // Kill the native row-snapping scrollbar
             // Enable advanced Double Buffering directly on the DataGridView to stop flickering
             typeof(DataGridView).InvokeMember("DoubleBuffered",
                 System.Reflection.BindingFlags.NonPublic |
@@ -526,6 +558,11 @@ namespace ComputerShopManagement.Views
                 btnDelete.AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
                 dgvCustomers.Columns.Add(btnDelete);
             }
+            // Calculate the exact pixel height required to show ALL rows without an internal scrollbar
+            dgvCustomers.DataBindingComplete += (s, e) =>
+            {
+                RecalculateGridHeight();
+            };
         }
 
         private void BtnAddCustomer_Click(object sender, EventArgs e)
@@ -657,7 +694,19 @@ namespace ComputerShopManagement.Views
                 e.Handled = true;
             }
         }
+        private void RecalculateGridHeight()
+        {
+            if (dgvCustomers == null) return;
 
+            int headerHeight = dgvCustomers.ColumnHeadersVisible ? dgvCustomers.ColumnHeadersHeight : 0;
+
+            // Safely get row height (returns 0 if no rows exist yet)
+            int rowsHeight = dgvCustomers.Rows.Count > 0
+                ? dgvCustomers.Rows.GetRowsHeight(DataGridViewElementStates.None)
+                : 0;
+
+            dgvCustomers.Height = headerHeight + rowsHeight + 2;
+        }
         private void DgvCustomers_DeleteClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgvCustomers.Columns[e.ColumnIndex].Name == "DeleteAction")
