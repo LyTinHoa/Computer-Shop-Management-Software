@@ -965,23 +965,23 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\LENOVO\\.nuget\\packages\\": {},
+    "C:\\Users\\ADMIN\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
+      "projectUniqueName": "C:\\Users\\ADMIN\\source\\repos\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
       "projectName": "ComputerShopManagement",
-      "projectPath": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
-      "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
-      "outputPath": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\obj\\",
+      "projectPath": "C:\\Users\\ADMIN\\source\\repos\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
+      "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\ADMIN\\source\\repos\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\ADMIN\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -990,6 +990,7 @@
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+        "C:\\Program Files\\dotnet\\library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {

@@ -212,6 +212,7 @@ namespace ComputerShopManagement.Views
             };
             btnInventory.Click += (s, e) => OpenModule(new frmInventory(_currentUser));
             btnEmployees.Click += (s, e) => OpenModule(new frmEmployeeAdmin(_currentUser));
+            btnCustomers.Click += (s, e) => OpenModule(new frmCustomers());
 
             // ==========================================
             // 3. MAIN CONTENT
