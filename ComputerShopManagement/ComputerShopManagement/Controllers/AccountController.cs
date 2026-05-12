@@ -70,15 +70,149 @@ namespace ComputerShopManagement.Controllers
         // Hashes password for NFR1 compliance
         public string HashPassword(string password)
         {
-            using (SHA256 sha256 = SHA256.Create())
+            using (System.Security.Cryptography.SHA256 sha256 = System.Security.Cryptography.SHA256.Create())
             {
-                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                StringBuilder builder = new StringBuilder();
-                foreach (byte b in bytes)
+                byte[] bytes = sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
+                System.Text.StringBuilder builder = new System.Text.StringBuilder();
+                for (int i = 0; i < bytes.Length; i++)
                 {
-                    builder.Append(b.ToString("x2"));
+                    builder.Append(bytes[i].ToString("x2"));
                 }
                 return builder.ToString();
+            }
+        }
+
+        // 2. Fetch all staff for the DataGridView
+        public System.Data.DataTable GetAllEmployees()
+        {
+            System.Data.DataTable dt = new System.Data.DataTable();
+            using (var conn = new ComputerShopManagement.Models.DatabaseContext().GetConnection())
+            {
+                string query = "SELECT staffID, fullName AS [Full Name], username AS [Username], role AS [Role] FROM Staff";
+                Microsoft.Data.SqlClient.SqlCommand cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn);
+                Microsoft.Data.SqlClient.SqlDataAdapter da = new Microsoft.Data.SqlClient.SqlDataAdapter(cmd);
+                da.Fill(dt);
+            }
+            return dt;
+        }
+
+        // 3. Securely add a new employee (Validates Manager's password first)
+        public bool AddEmployee(Staff newStaff, string managerPasswordInput, Staff currentManager, out string errorMsg)
+        {
+            errorMsg = "";
+            // Security Layer: Verify the acting manager's password
+            if (this.Authenticate(currentManager.Username, managerPasswordInput) != 1)
+            {
+                errorMsg = "Authorization Failed: Incorrect Manager Password.";
+                return false;
+            }
+
+            try
+            {
+                using (var conn = new ComputerShopManagement.Models.DatabaseContext().GetConnection())
+                {
+                    conn.Open();
+                    // Check if username already exists
+                    string checkQuery = "SELECT COUNT(1) FROM Staff WHERE username = @user";
+                    using (var checkCmd = new Microsoft.Data.SqlClient.SqlCommand(checkQuery, conn))
+                    {
+                        checkCmd.Parameters.AddWithValue("@user", newStaff.Username);
+                        if ((int)checkCmd.ExecuteScalar() > 0)
+                        {
+                            errorMsg = "Username already exists in the system.";
+                            return false;
+                        }
+                    }
+
+                    // Insert new staff securely
+                    string insertQuery = "INSERT INTO Staff (fullName, username, password, role) VALUES (@name, @user, @pass, @role)";
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(insertQuery, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@name", newStaff.FullName);
+                        cmd.Parameters.AddWithValue("@user", newStaff.Username);
+                        cmd.Parameters.AddWithValue("@pass", HashPassword(newStaff.Password)); // Hash the new user's password
+                        cmd.Parameters.AddWithValue("@role", newStaff.Role);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = "Database Error: " + ex.Message;
+                return false;
+            }
+        }
+
+        // 4. Securely delete an employee (Validates Manager's password first)
+        public bool DeleteEmployee(int targetStaffId, string managerPasswordInput, Staff currentManager, out string errorMsg)
+        {
+            errorMsg = "";
+            // Security Layer: Verify the acting manager's password
+            if (this.Authenticate(currentManager.Username, managerPasswordInput) != 1)
+            {
+                errorMsg = "Authorization Failed: Incorrect Manager Password.";
+                return false;
+            }
+
+            // Safety check: Manager cannot delete themselves
+            if (targetStaffId == currentManager.StaffID)
+            {
+                errorMsg = "Safety Protocol: You cannot delete your own active account.";
+                return false;
+            }
+
+            try
+            {
+                using (var conn = new ComputerShopManagement.Models.DatabaseContext().GetConnection())
+                {
+                    conn.Open();
+                    string query = "DELETE FROM Staff WHERE staffID = @id";
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", targetStaffId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                // If they have associated invoices, foreign key constraints will block deletion.
+                errorMsg = "Cannot delete employee. They have existing sales records tied to their account.";
+                return false;
+            }
+        }
+
+        public bool ResetEmployeePassword(int targetStaffId, string newPassword, string managerPasswordInput, Staff currentManager, out string errorMsg)
+        {
+            errorMsg = "";
+            // Security Layer: Verify the acting manager's password using the DB
+            if (this.Authenticate(currentManager.Username, managerPasswordInput) != 1)
+            {
+                errorMsg = "Authorization Failed: Incorrect Manager Password.";
+                return false;
+            }
+
+            try
+            {
+                using (var conn = new ComputerShopManagement.Models.DatabaseContext().GetConnection())
+                {
+                    conn.Open();
+                    string query = "UPDATE Staff SET password = @pass WHERE staffID = @id";
+                    using (var cmd = new Microsoft.Data.SqlClient.SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@pass", HashPassword(newPassword)); 
+                        cmd.Parameters.AddWithValue("@id", targetStaffId);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return true;
+            }
+            catch (Exception ex)
+            {
+                errorMsg = "Database Error: " + ex.Message;
+                return false;
             }
         }
     }

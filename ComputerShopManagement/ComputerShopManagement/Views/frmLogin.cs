@@ -285,15 +285,26 @@ namespace ComputerShopManagement.Views
                 return;
             }
 
-            // Calls the controller which now returns an integer status code
             int authStatus = _controller.Authenticate(username, password);
 
             if (authStatus == 1) // 1 = Success
             {
-                // Create the dashboard and pass the authenticated user data to it
                 frmMainDashboard dashboard = new frmMainDashboard(_controller.CurrentUser);
-                dashboard.Show();
                 this.Hide();
+
+                DialogResult result = dashboard.ShowDialog();
+
+                if (result == DialogResult.Retry)
+                {
+                    clearFields(-1);
+                    this.Show();
+                    this.Activate();
+                }
+                else
+                {
+
+                    this.Close();
+                }
             }
             else
             {
