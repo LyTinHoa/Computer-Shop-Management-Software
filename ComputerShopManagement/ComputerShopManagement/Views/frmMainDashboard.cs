@@ -38,12 +38,12 @@ namespace ComputerShopManagement.Views
         private Panel pnlMainContent;
 
         private Button btnSales, btnInventory, btnCustomers, btnEmployees, btnReports, btnLogout;
-        
+
         // UI Elements for Resizing
         private Label lblGreeting, lblRole, lblClock, lblShift;
         private Panel cardRevenue, cardOrders, cardStock;
 
-        // NEW: Track active buttons for flawless startup alignment
+        // Track active buttons for flawless startup alignment
         private List<Button> _activeNavButtons = new List<Button>();
 
         public frmMainDashboard(Staff loggedInUser)
@@ -89,7 +89,7 @@ namespace ComputerShopManagement.Views
         private void SetupDashboardUI()
         {
             this.Size = new Size(1600, 900);
-            this.MinimumSize = new Size(1200, 700); 
+            this.MinimumSize = new Size(1200, 700);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = lightGray;
@@ -115,7 +115,7 @@ namespace ComputerShopManagement.Views
             pnlWindowControls.BringToFront();
 
             Action<Button, string> SetupWindowBtn = (btn, type) => {
-                btn.Size = new Size(50, topBarHeight); 
+                btn.Size = new Size(50, topBarHeight);
                 btn.Location = new Point(type == "Min" ? 0 : type == "Max" ? 50 : 100, 0);
                 btn.FlatStyle = FlatStyle.Flat; btn.FlatAppearance.BorderSize = 0; btn.Cursor = Cursors.Hand;
                 btn.Paint += (s, e) => {
@@ -135,7 +135,7 @@ namespace ComputerShopManagement.Views
 
             Button btnMin = new Button(); SetupWindowBtn(btnMin, "Min");
             btnMin.Click += (s, e) => this.WindowState = FormWindowState.Minimized;
-            
+
             Button btnMax = new Button(); SetupWindowBtn(btnMax, "Max");
             btnMax.Click += (s, e) => {
                 if (this.WindowState == FormWindowState.Normal)
@@ -148,11 +148,11 @@ namespace ComputerShopManagement.Views
                     this.WindowState = FormWindowState.Normal;
                 }
             };
-            
+
             Button btnClose = new Button(); SetupWindowBtn(btnClose, "Close");
             btnClose.Click += (s, e) =>
             {
-                if (MessageBox.Show("Are you sure you want to leave?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                if (MessageBox.Show("Are you sure you want to exit the application?", "Confirm Exit", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
                     Application.Exit();
                 }
@@ -160,7 +160,7 @@ namespace ComputerShopManagement.Views
             btnClose.MouseEnter += (s, e) => btnClose.Invalidate();
 
             pnlWindowControls.Controls.Add(btnClose);
-            pnlWindowControls.Controls.Add(btnMax); 
+            pnlWindowControls.Controls.Add(btnMax);
             pnlWindowControls.Controls.Add(btnMin);
 
             // ==========================================
@@ -177,7 +177,7 @@ namespace ComputerShopManagement.Views
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
                 float titleSize = Math.Max(20f, pnlSidebar.Width * 0.12f);
                 float subSize = Math.Max(8f, pnlSidebar.Width * 0.028f);
-                
+
                 e.Graphics.DrawString("BitTekk", new Font("Segoe UI", titleSize, FontStyle.Bold), Brushes.White, new Point((int)(pnlSidebar.Width * 0.08f), 20));
                 e.Graphics.DrawString("Computer Shop Management", new Font("Segoe UI Semibold", subSize, FontStyle.Regular), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point((int)(pnlSidebar.Width * 0.1f), (int)(20 + titleSize * 1.5f + 10)));
             };
@@ -188,18 +188,17 @@ namespace ComputerShopManagement.Views
             btnInventory = CreateNavButton("📦  Inventory Manager", 240);
             btnCustomers = CreateNavButton("👥  Customers", 310);
             btnEmployees = CreateNavButton("👔  Employee Admin", 380);
-            btnReports = CreateNavButton("📊  Reports & Analytics", 450);
+            btnReports = CreateNavButton("📊  Report/Analytics", 450);
 
-            btnLogout = CreateNavButton("🚪  Logout", 0); 
+            btnLogout = CreateNavButton("🚪  Logout", 0);
             btnLogout.Height = 80;
             btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
             btnLogout.MouseEnter += (s, e) => btnLogout.BackColor = dangerRed;
             btnLogout.MouseLeave += (s, e) => btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
-            btnLogout.Click += (s, e) => 
-            { 
+            btnLogout.Click += (s, e) =>
+            {
                 if (MessageBox.Show("Are you sure you want to log out?", "Confirm Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                 {
-                    // FIXED: Signal the login form to show up again instead of restarting the app
                     this.DialogResult = DialogResult.Retry;
                     this.Close();
                 }
@@ -214,36 +213,39 @@ namespace ComputerShopManagement.Views
             btnEmployees.Click += (s, e) => OpenModule(new frmEmployeeAdmin(_currentUser));
             btnCustomers.Click += (s, e) => OpenModule(new frmCustomers());
 
+            // FIX: Wire up the click event to open the actual frmReports
+            btnReports.Click += (s, e) => {
+                OpenModule(new frmReports(_currentUser));
+            };
+
             // ==========================================
             // 3. MAIN CONTENT
             // ==========================================
             pnlMainContent = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
             this.Controls.Add(pnlMainContent);
             pnlMainContent.BringToFront();
-            
+
             // ==========================================
             // 4. MASTER RESPONSIVE RESIZE ENGINE
             // ==========================================
             this.Resize += (s, e) => {
                 float scaleX = this.ClientSize.Width / 1600f;
                 float scaleY = this.ClientSize.Height / 900f;
-                float minScale = Math.Min(scaleX, scaleY); 
-                
+                float minScale = Math.Min(scaleX, scaleY);
+
                 // A. Scale Sidebar
                 pnlSidebar.Width = (int)(350 * scaleX);
-                
+
                 // B. Scale Navigation Buttons
                 int currentY = (int)(170 * scaleY);
                 int spacing = (int)(70 * scaleY);
                 float btnFontSize = Math.Max(10f, 14 * minScale);
-                
-                // 1. Update fonts for all buttons
+
                 foreach (Control ctrl in pnlSidebar.Controls)
                 {
                     if (ctrl is Button btn) btn.Font = new Font("Segoe UI Semibold", btnFontSize);
                 }
 
-                // 2. Safely position only the active buttons using our list (Fixes Startup Gap Issue)
                 foreach (Button btn in _activeNavButtons)
                 {
                     btn.Size = new Size(pnlSidebar.Width, (int)(65 * scaleY));
@@ -251,12 +253,11 @@ namespace ComputerShopManagement.Views
                     currentY += spacing;
                 }
 
-                // 3. Force Logout to stay a rectangle at the bottom
                 btnLogout.Size = new Size(pnlSidebar.Width, (int)(80 * scaleY));
                 btnLogout.Location = new Point(0, pnlSidebar.Height - btnLogout.Height);
-                
-                pnlSidebar.Invalidate(); 
-                
+
+                pnlSidebar.Invalidate();
+
                 // C. Scale Main Dashboard Elements (If loaded)
                 if (lblGreeting != null)
                 {
@@ -267,7 +268,7 @@ namespace ComputerShopManagement.Views
 
                     int newCardWidth = (int)(340 * scaleX);
                     int newCardHeight = (int)(180 * scaleY);
-                    
+
                     int totalCardsWidth = newCardWidth * 3;
                     int gap = (pnlMainContent.Width - totalCardsWidth) / 4;
                     if (gap < 20) gap = 20;
@@ -303,7 +304,6 @@ namespace ComputerShopManagement.Views
             cardRevenue = CreateKPICard("Today's Revenue", "$4,250.00", "+12% from yesterday", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96));
             pnlMainContent.Controls.Add(cardRevenue);
 
-            // Changed wording to match our new POS logic
             cardOrders = CreateKPICard("Transactions Today", "24", "Avg. Value: $175.00", Color.FromArgb(52, 152, 219), techBlue);
             pnlMainContent.Controls.Add(cardOrders);
 
@@ -388,22 +388,18 @@ namespace ComputerShopManagement.Views
         {
             module.StartPosition = FormStartPosition.Manual;
 
-            // 1. Pass current state to the sub-module
             if (this.WindowState == FormWindowState.Normal)
             {
                 module.Bounds = this.Bounds;
             }
             module.WindowState = this.WindowState;
 
-            // 2. Hide Dashboard and open the sub-module
             this.Hide();
             module.ShowDialog();
 
-            // 3. Capture the exact state and size the user left the sub-module in
             FormWindowState finalState = module.WindowState;
             Rectangle finalBounds = module.Bounds;
 
-            // 4. Show the dashboard and apply the state
             this.Show();
             this.WindowState = finalState;
             if (finalState == FormWindowState.Normal)
@@ -411,9 +407,6 @@ namespace ComputerShopManagement.Views
                 this.Bounds = finalBounds;
             }
 
-            // 5. THE BULLETPROOF FIX: Use a tiny 50ms timer.
-            // This forces the code to wait until the OS completely finishes updating 
-            // the window's physical ClientSize before it tries to scale the fonts.
             System.Windows.Forms.Timer syncTimer = new System.Windows.Forms.Timer();
             syncTimer.Interval = 50;
             syncTimer.Tick += (s, ev) =>
@@ -421,20 +414,17 @@ namespace ComputerShopManagement.Views
                 syncTimer.Stop();
                 syncTimer.Dispose();
 
-                // Re-enforce bounds just to be absolutely certain
                 if (finalState == FormWindowState.Normal)
                 {
                     this.Bounds = finalBounds;
                 }
 
-                // Fire the responsive math with the correct dimensions
                 this.OnResize(EventArgs.Empty);
-
-                // Force a complete UI repaint so all boxes and fonts snap to the right size
                 this.Refresh();
             };
             syncTimer.Start();
         }
+
         private void ApplyRoleBasedAccess()
         {
             string role = _currentUser.Role;
@@ -450,7 +440,6 @@ namespace ComputerShopManagement.Views
             btnEmployees.Visible = showEmployees;
             btnReports.Visible = showReports;
 
-            // Track exactly which buttons are active so they stack cleanly from the top
             _activeNavButtons.Clear();
             if (showSales) _activeNavButtons.Add(btnSales);
             if (showInventory) _activeNavButtons.Add(btnInventory);

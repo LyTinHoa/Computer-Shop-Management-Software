@@ -16,6 +16,9 @@
     <Compile Update="Views\frmMainDashboard.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Views\frmReports.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="Views\frmSales.cs">
       <SubType>Form</SubType>
     </Compile>
