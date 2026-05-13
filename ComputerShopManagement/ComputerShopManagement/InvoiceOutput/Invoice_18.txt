@@ -1,0 +1,22 @@
+==================================================
+           BITTEKK COMPUTER SYSTEMS              
+         Premium Hardware & Solutions            
+==================================================
+Invoice ID: 18
+Date:       May 13, 2026  09:49 PM
+--------------------------------------------------
+CUSTOMER DETAILS
+Name:  What's UP
+Phone: 30981273409
+Email: Boi@loin.shites
+--------------------------------------------------
+Item                             Qty        Price
+--------------------------------------------------
+Samsung 990 PRO 2TB SSD            2      $339.98
+NVIDIA RTX 4090 GPU                2    $3,199.98
+--------------------------------------------------
+TOTAL AMOUNT:                           $3,539.96
+==================================================
+      Thank you for shopping at BitTekk!         
+    Please keep this receipt for warranty.       
+==================================================

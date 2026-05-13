@@ -598,20 +598,18 @@ namespace ComputerShopManagement.Views
                             Email = checkoutModal.CustomerEmail,
                             Phone = checkoutModal.CustomerPhone
                         };
-
                         string errorMsg;
                         if (!customerCtrl.AddCustomer(newCustomer, out errorMsg))
                         {
                             MessageBox.Show(errorMsg, "Customer Creation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
-
                         customer = customerCtrl.GetCustomerByPhone(checkoutModal.CustomerPhone);
                     }
 
                     _controller.CurrentInvoice.CustomerID = customer.CustomerID;
 
-                    if (_controller.ProcessPayment())
+                    if (_controller.ProcessPayment(customer))
                     {
                         MessageBox.Show("Payment processed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         _controller.CurrentInvoice.Details.Clear();

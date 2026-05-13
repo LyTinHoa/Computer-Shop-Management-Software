@@ -1,6 +1,8 @@
 using System;
 using System.Windows.Forms;
-using ComputerShopManagement.Views; // Added to access the Views folder
+using System.Globalization; // Added for regional settings
+using System.Threading;     // Added for thread control
+using ComputerShopManagement.Views;
 
 namespace ComputerShopManagement
 {
@@ -9,8 +11,12 @@ namespace ComputerShopManagement
         [STAThread]
         static void Main()
         {
+            CultureInfo usCulture = new CultureInfo("en-US");
+            Thread.CurrentThread.CurrentCulture = usCulture;
+            Thread.CurrentThread.CurrentUICulture = usCulture;
+
             ApplicationConfiguration.Initialize();
-            // Start the application with the new modern Login Form
+
             Application.Run(new frmLogin());
         }
     }

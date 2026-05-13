@@ -41,14 +41,15 @@ namespace ComputerShopManagement.Views
         private Panel btnBack, btnGenerate;
         private ComboBox cmbReportType;
         private DateTimePicker dtpStart, dtpEnd;
-        private Label lblType, lblStart, lblEnd;
+        private Label lblTitle, lblType, lblStart, lblEnd;
         private DataGridView dgvReport;
 
         // KPI Cards
         private Panel cardMetric1, cardMetric2, cardMetric3;
 
-        // Prevents infinite loops when programmatically changing dates
         private bool _isUpdatingDates = false;
+
+        private float _fontScale = 0.9f;
 
         public frmReports(Staff currentUser)
         {
@@ -98,6 +99,25 @@ namespace ComputerShopManagement.Views
             return path;
         }
 
+        // Apply scale to standard UI elements
+        private void UpdateFonts()
+        {
+            lblTitle.Font = new Font("Segoe UI", 24 * _fontScale, FontStyle.Bold);
+
+            Font semiBold12 = new Font("Segoe UI Semibold", 12 * _fontScale);
+            lblType.Font = semiBold12;
+            lblStart.Font = semiBold12;
+            lblEnd.Font = semiBold12;
+
+            Font regular12 = new Font("Segoe UI", 12 * _fontScale);
+            cmbReportType.Font = regular12;
+            dtpStart.Font = regular12;
+            dtpEnd.Font = regular12;
+
+            dgvReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 13 * _fontScale);
+            dgvReport.DefaultCellStyle.Font = new Font("Segoe UI", 12 * _fontScale);
+        }
+
         private void SetupResponsiveUI()
         {
             this.Size = new Size(1600, 900);
@@ -105,6 +125,9 @@ namespace ComputerShopManagement.Views
             this.FormBorderStyle = FormBorderStyle.None;
             this.BackColor = lightGray;
             this.Padding = new Padding(2);
+
+            // Set initial scale based on window state
+            _fontScale = this.WindowState == FormWindowState.Maximized ? 1.0f : 0.8f;
 
             // ==========================================
             // 1. TALL HEADER & FLUSH WINDOW CONTROLS
@@ -120,7 +143,7 @@ namespace ComputerShopManagement.Views
                 e.Graphics.DrawLine(new Pen(Color.FromArgb(230, 230, 230), 1), 0, pnlTitleBar.Height - 1, pnlTitleBar.Width, pnlTitleBar.Height - 1);
             };
 
-            Label lblTitle = new Label { Text = "BitTekk | Report/Analytics", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(30, 0, 0, 0), Font = new Font("Segoe UI", 24, FontStyle.Bold), ForeColor = deepText, BackColor = Color.Transparent };
+            lblTitle = new Label { Text = "BitTekk | Report/Analytics", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(30, 0, 0, 0), Font = new Font("Segoe UI", 24 * _fontScale, FontStyle.Bold), ForeColor = deepText, BackColor = Color.Transparent };
             lblTitle.MouseDown += (s, e) => { if (e.Button == MouseButtons.Left) { ReleaseCapture(); SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0); } };
             pnlTitleBar.Controls.Add(lblTitle);
 
@@ -163,7 +186,6 @@ namespace ComputerShopManagement.Views
 
             pnlWindowControls.Controls.Add(btnClose); pnlWindowControls.Controls.Add(btnMax); pnlWindowControls.Controls.Add(btnMin);
 
-
             // ==========================================
             // 2. THE FILTER BAR & BACK BUTTON
             // ==========================================
@@ -183,7 +205,7 @@ namespace ComputerShopManagement.Views
                 {
                     e.Graphics.FillPath(new SolidBrush(isBackHovered ? Color.FromArgb(31, 97, 141) : techBlue), path);
                 }
-                TextRenderer.DrawText(e.Graphics, "← Back", new Font("Segoe UI Semibold", 12), new Rectangle(0, 0, btnBack.Width, btnBack.Height), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                TextRenderer.DrawText(e.Graphics, "← Back", new Font("Segoe UI Semibold", 12 * _fontScale), new Rectangle(0, 0, btnBack.Width, btnBack.Height), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
             pnlFilters.Controls.Add(btnBack);
 
@@ -198,16 +220,15 @@ namespace ComputerShopManagement.Views
             };
             pnlFilters.Controls.Add(pnlFilterContainer);
 
-            // FIX: Enforced "dd/MM/yyyy" format for regional consistency
-            lblType = new Label { Text = "Report Type:", Font = new Font("Segoe UI Semibold", 12), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
-            cmbReportType = new ComboBox { Font = new Font("Segoe UI", 12), Width = 240, DropDownStyle = ComboBoxStyle.DropDownList };
+            lblType = new Label { Text = "Report Type:", Font = new Font("Segoe UI Semibold", 12 * _fontScale), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
+            cmbReportType = new ComboBox { Font = new Font("Segoe UI", 12 * _fontScale), Width = 240, DropDownStyle = ComboBoxStyle.DropDownList };
             cmbReportType.Items.AddRange(new string[] { "Daily Sales", "Weekly Sales", "Monthly Sales", "Inventory Valuation" });
 
-            lblStart = new Label { Text = "Start:", Font = new Font("Segoe UI Semibold", 12), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
-            dtpStart = new DateTimePicker { Font = new Font("Segoe UI", 12), Format = DateTimePickerFormat.Custom, CustomFormat = "dd/MM/yyyy", Width = 140 };
+            lblStart = new Label { Text = "Start:", Font = new Font("Segoe UI Semibold", 12 * _fontScale), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
+            dtpStart = new DateTimePicker { Font = new Font("Segoe UI", 12 * _fontScale), Format = DateTimePickerFormat.Custom, CustomFormat = "dd/MM/yyyy", Width = 140 };
 
-            lblEnd = new Label { Text = "End:", Font = new Font("Segoe UI Semibold", 12), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
-            dtpEnd = new DateTimePicker { Font = new Font("Segoe UI", 12), Format = DateTimePickerFormat.Custom, CustomFormat = "dd/MM/yyyy", Width = 140 };
+            lblEnd = new Label { Text = "End:", Font = new Font("Segoe UI Semibold", 12 * _fontScale), ForeColor = deepText, AutoSize = true, BackColor = Color.White };
+            dtpEnd = new DateTimePicker { Font = new Font("Segoe UI", 12 * _fontScale), Format = DateTimePickerFormat.Custom, CustomFormat = "dd/MM/yyyy", Width = 140 };
 
             btnGenerate = new Panel { Size = new Size(160, 42), Cursor = Cursors.Hand, BackColor = Color.White };
             EnableDoubleBuffering(btnGenerate);
@@ -221,7 +242,7 @@ namespace ComputerShopManagement.Views
                 {
                     e.Graphics.FillPath(new SolidBrush(isGenHovered ? Color.FromArgb(39, 174, 96) : successGreen), path);
                 }
-                TextRenderer.DrawText(e.Graphics, "GENERATE", new Font("Segoe UI Semibold", 11), new Rectangle(0, 0, btnGenerate.Width, btnGenerate.Height), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                TextRenderer.DrawText(e.Graphics, "GENERATE", new Font("Segoe UI Semibold", 11 * _fontScale), new Rectangle(0, 0, btnGenerate.Width, btnGenerate.Height), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
 
             pnlFilterContainer.Controls.AddRange(new Control[] { lblType, cmbReportType, lblStart, dtpStart, lblEnd, dtpEnd, btnGenerate });
@@ -287,12 +308,12 @@ namespace ComputerShopManagement.Views
             dgvReport.ColumnHeadersDefaultCellStyle.ForeColor = deepText;
             dgvReport.ColumnHeadersDefaultCellStyle.SelectionBackColor = lightGray;
             dgvReport.ColumnHeadersDefaultCellStyle.SelectionForeColor = deepText;
-            dgvReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 13);
+            dgvReport.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 13 * _fontScale);
             dgvReport.ColumnHeadersHeight = 50;
 
             dgvReport.DefaultCellStyle.BackColor = Color.White;
             dgvReport.DefaultCellStyle.ForeColor = deepText;
-            dgvReport.DefaultCellStyle.Font = new Font("Segoe UI", 12);
+            dgvReport.DefaultCellStyle.Font = new Font("Segoe UI", 12 * _fontScale);
             dgvReport.DefaultCellStyle.SelectionBackColor = techBlue;
             dgvReport.DefaultCellStyle.SelectionForeColor = Color.White;
             dgvReport.DefaultCellStyle.Padding = new Padding(10, 0, 10, 0);
@@ -306,6 +327,16 @@ namespace ComputerShopManagement.Views
             // MASTER RESIZE ENGINE
             // ==========================================
             this.Resize += (s, e) => {
+
+                // Dynamically adjust font scales
+                float newScale = this.WindowState == FormWindowState.Maximized ? 1.0f : 0.8f;
+                if (_fontScale != newScale)
+                {
+                    _fontScale = newScale;
+                    UpdateFonts();
+                    this.Invalidate(true); // Redraw custom UI elements
+                }
+
                 ReflowFilterBar();
 
                 int cardWidth = 360;
@@ -384,7 +415,7 @@ namespace ComputerShopManagement.Views
             string type = cmbReportType.SelectedItem.ToString();
             DateTime today = DateTime.Today;
 
-            // FIX: Safely lock "Daily Sales" back to maximum of Today if ValueChanged is fired
+            // Safely lock "Daily Sales" back to maximum of Today if ValueChanged is fired
             if (type == "Daily Sales")
             {
                 dtpStart.MaxDate = today;
@@ -465,7 +496,6 @@ namespace ComputerShopManagement.Views
             pnlFilterContainer.Top = (pnlFilters.Height - pnlFilterContainer.Height) / 2;
         }
 
-
         private Panel CreateMetricCard(string title, string value, string subtitle)
         {
             Panel card = new Panel { Size = new Size(360, 150), BackColor = Color.Transparent };
@@ -489,9 +519,10 @@ namespace ComputerShopManagement.Views
                     e.Graphics.DrawPath(new Pen(Color.LightGray, 1), path);
                 }
 
-                e.Graphics.DrawString(data[0], new Font("Segoe UI Semibold", 13), new SolidBrush(Color.Gray), new Point(30, 20));
+                // Apply dynamic font scale to drawing strings
+                e.Graphics.DrawString(data[0], new Font("Segoe UI Semibold", 13 * _fontScale), new SolidBrush(Color.Gray), new Point(30, 20));
 
-                float fontSize = 32f;
+                float fontSize = 32f * _fontScale;
                 Font valueFont = new Font("Segoe UI", fontSize, FontStyle.Bold);
                 while (e.Graphics.MeasureString(data[1], valueFont).Width > card.Width - 40 && fontSize > 12f)
                 {
@@ -500,11 +531,11 @@ namespace ComputerShopManagement.Views
                     valueFont = new Font("Segoe UI", fontSize, FontStyle.Bold);
                 }
 
-                int yPos = 45 + (int)((32f - fontSize) / 2);
+                int yPos = 45 + (int)(((32f * _fontScale) - fontSize) / 2);
                 e.Graphics.DrawString(data[1], valueFont, new SolidBrush(deepText), new Point(25, yPos));
                 valueFont.Dispose();
 
-                e.Graphics.DrawString(data[2], new Font("Segoe UI", 11), new SolidBrush(techBlue), new Point(30, 110));
+                e.Graphics.DrawString(data[2], new Font("Segoe UI", 11 * _fontScale), new SolidBrush(techBlue), new Point(30, 110));
             };
             return card;
         }
@@ -518,104 +549,95 @@ namespace ComputerShopManagement.Views
         }
 
         // ==========================================
-        // DATABASE BRIDGE SIMULATOR (Backend Readiness)
+        // DATABASE BRIDGE & DYNAMIC BINDING
         // ==========================================
         private void BtnGenerate_Click(object sender, EventArgs e)
         {
             Cursor = Cursors.WaitCursor;
             Application.DoEvents();
-            System.Threading.Thread.Sleep(400);
 
             string reportType = cmbReportType.SelectedItem.ToString();
-            DateTime startDate = dtpStart.Value.Date;
-            DateTime endDate = dtpEnd.Value.Date;
-
-            // In production, this directly replaces the simulation:
-            // DataTable dt = _controller.GetReportData(reportType, startDate, endDate);
-            DataTable dt = SimulateDatabaseFetch(reportType, startDate, endDate);
-
-            dgvReport.DataSource = dt;
-            Cursor = Cursors.Default;
-        }
-
-        private DataTable SimulateDatabaseFetch(string reportType, DateTime start, DateTime end)
-        {
             DataTable dt = new DataTable();
 
-            if (reportType == "Daily Sales")
+            try
             {
-                dt.Columns.Add("Date");
-                dt.Columns.Add("Invoice ID");
-                dt.Columns.Add("Customer Name");
-                dt.Columns.Add("Items Purchased");
-                dt.Columns.Add("Total Amount");
+                if (reportType == "Inventory Valuation")
+                {
+                    dt = _controller.GetInventoryValuationReport();
 
-                // FIX: Used explicit dd/MM/yyyy pattern
-                string displayDate = start.ToString("dd/MM/yyyy");
+                    UpdateMetricCard(cardMetric1, dt.Rows.Count.ToString(), "Total Product Lines");
+                    UpdateMetricCard(cardMetric2, "Up to date", "Stock Status");
+                    UpdateMetricCard(cardMetric3, "Checked", "System Sync");
+                }
+                else
+                {
+                    // For Daily, Weekly, Monthly Sales
+                    DateTime startDate = dtpStart.Value.Date;
+                    DateTime endDate = reportType == "Daily Sales"
+                        ? startDate.AddDays(1).AddTicks(-1)
+                        : dtpEnd.Value.Date.AddDays(1).AddTicks(-1);
 
-                dt.Rows.Add(displayDate, "INV-10045", "Alice Johnson", "NVIDIA RTX 4090", "$1,599.99");
-                dt.Rows.Add(displayDate, "INV-10046", "Robert Smith", "Intel Core i9-14900K", "$589.50");
-                dt.Rows.Add(displayDate, "INV-10047", "Maria Garcia", "Samsung 990 PRO 2TB", "$169.99");
+                    // Fetch all detailed sales from Controller
+                    dt = _controller.GetDetailedSalesReport();
 
-                UpdateMetricCard(cardMetric1, "$2,359.48", "Gross Revenue (Today)");
-                UpdateMetricCard(cardMetric2, "3", "Transactions (Today)");
-                UpdateMetricCard(cardMetric3, "Graphics Cards", "Top Category (Today)");
+                    // Efficient local filtering using DataView
+                    if (dt.Rows.Count > 0)
+                    {
+                        DataView dv = dt.DefaultView;
+
+                        dv.RowFilter = string.Format("[Date] >= #{0}# AND [Date] <= #{1}#",
+                            startDate.ToString("MM/dd/yyyy HH:mm:ss"),
+                            endDate.ToString("MM/dd/yyyy HH:mm:ss"));
+
+                        dt = dv.ToTable();
+                    }
+
+                    // Dynamically calculate metrics based on the filtered results
+                    decimal totalRevenue = 0;
+                    int totalItems = 0;
+
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        totalItems += Convert.ToInt32(row["Product Qty"]);
+                        totalRevenue += Convert.ToDecimal(row["Total"]);
+                    }
+
+                    UpdateMetricCard(cardMetric1, totalRevenue.ToString("C2"), "Gross Revenue");
+                    UpdateMetricCard(cardMetric2, totalItems.ToString(), "Units Moved");
+                    UpdateMetricCard(cardMetric3, dt.Rows.Count.ToString(), "Total Transactions");
+                }
+
+                // Bind directly to Grid
+                dgvReport.DataSource = dt;
+                FormatGridColumns();
             }
-            else if (reportType == "Weekly Sales")
+            catch (Exception ex)
             {
-                dt.Columns.Add("Week Of");
-                dt.Columns.Add("Total Invoices");
-                dt.Columns.Add("Unique Customers");
-                dt.Columns.Add("Items Sold");
-                dt.Columns.Add("Weekly Gross");
-
-                string weekDisplay = $"{start.ToString("dd MMM")} - {end.ToString("dd MMM")}";
-
-                dt.Rows.Add(weekDisplay, "28", "22", "45", "$14,580.00");
-                dt.Rows.Add("01 May - 07 May", "32", "29", "51", "$16,220.50");
-                dt.Rows.Add("22 Apr - 28 Apr", "25", "20", "39", "$12,400.00");
-
-                UpdateMetricCard(cardMetric1, "$14,580.00", "Gross Revenue (Selected Week)");
-                UpdateMetricCard(cardMetric2, "45", "Units Moved (Selected Week)");
-                UpdateMetricCard(cardMetric3, "Processors", "Top Category (Selected Week)");
+                MessageBox.Show($"Failed to generate report: {ex.Message}", "Database Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            else if (reportType == "Monthly Sales")
+            finally
             {
-                dt.Columns.Add("Month");
-                dt.Columns.Add("Total Invoices");
-                dt.Columns.Add("Unique Customers");
-                dt.Columns.Add("Items Sold");
-                dt.Columns.Add("Monthly Gross");
-
-                string monthDisplay = start.ToString("MMMM yyyy");
-
-                dt.Rows.Add(monthDisplay, "112", "98", "180", "$52,400.00");
-                dt.Rows.Add("April 2026", "145", "120", "210", "$68,950.25");
-                dt.Rows.Add("March 2026", "130", "110", "195", "$61,200.00");
-
-                UpdateMetricCard(cardMetric1, "$52,400.00", "Gross Revenue (Selected Month)");
-                UpdateMetricCard(cardMetric2, "180", "Units Moved (Selected Month)");
-                UpdateMetricCard(cardMetric3, "Graphics Cards", "Top Category (Selected Month)");
+                Cursor = Cursors.Default;
             }
-            else if (reportType == "Inventory Valuation")
-            {
-                dt.Columns.Add("Category");
-                dt.Columns.Add("Product Name");
-                dt.Columns.Add("Current Stock");
-                dt.Columns.Add("Unit Cost");
-                dt.Columns.Add("Total Asset Value");
+        }
 
-                dt.Rows.Add("Graphics Cards", "NVIDIA RTX 4090", "5", "$1,400.00", "$7,000.00");
-                dt.Rows.Add("Processors", "Intel Core i9-14900K", "12", "$500.00", "$6,000.00");
-                dt.Rows.Add("Storage", "Samsung 990 PRO 2TB", "20", "$120.00", "$2,400.00");
-                dt.Rows.Add("Memory", "Corsair 32GB DDR5", "30", "$90.00", "$2,700.00");
+        // Applies sleek formatting to specific data columns dynamically
+        private void FormatGridColumns()
+        {
+            if (dgvReport.Columns.Contains("Unit Price"))
+                dgvReport.Columns["Unit Price"].DefaultCellStyle.Format = "C2";
 
-                UpdateMetricCard(cardMetric1, "$18,100.00", "Total Capital in Inventory");
-                UpdateMetricCard(cardMetric2, "67", "Total Physical Units");
-                UpdateMetricCard(cardMetric3, "Graphics Cards", "Highest Capital Concentration");
-            }
+            if (dgvReport.Columns.Contains("Total"))
+                dgvReport.Columns["Total"].DefaultCellStyle.Format = "C2";
 
-            return dt;
+            if (dgvReport.Columns.Contains("Unit Cost"))
+                dgvReport.Columns["Unit Cost"].DefaultCellStyle.Format = "C2";
+
+            if (dgvReport.Columns.Contains("Total Asset Value"))
+                dgvReport.Columns["Total Asset Value"].DefaultCellStyle.Format = "C2";
+
+            if (dgvReport.Columns.Contains("Date"))
+                dgvReport.Columns["Date"].DefaultCellStyle.Format = "MM/dd/yyyy hh:mm tt";
         }
     }
 }

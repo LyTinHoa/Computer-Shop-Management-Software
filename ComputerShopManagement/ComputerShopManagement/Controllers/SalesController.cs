@@ -1,4 +1,7 @@
 ﻿using System;
+using System.IO;
+using System.Text;
+using System.Diagnostics;
 using Microsoft.Data.SqlClient;
 using ComputerShopManagement.Models;
 
@@ -17,7 +20,6 @@ namespace ComputerShopManagement.Controllers
             Inventory = new InventoryController();
         }
 
-        // Adds selected items to the current invoice details list
         public void AddItemsToInvoice(Product p, int qty)
         {
             InvoiceDetail detail = new InvoiceDetail
@@ -29,7 +31,6 @@ namespace ComputerShopManagement.Controllers
             CurrentInvoice.Details.Add(detail);
         }
 
-        // Calculates the sum of all items in the current invoice
         public decimal CalculateFinalTotal()
         {
             decimal total = 0;
@@ -41,11 +42,10 @@ namespace ComputerShopManagement.Controllers
             return total;
         }
 
-        // Processes the checkout: Saves the invoice and updates stock securely
-        public bool ProcessPayment()
+        // Processes the checkout and triggers text export on success
+        public bool ProcessPayment(Customer customer)
         {
             if (CurrentInvoice.Details.Count == 0) return false;
-
             CalculateFinalTotal();
 
             using (var connection = _dbContext.GetConnection())
@@ -55,21 +55,20 @@ namespace ComputerShopManagement.Controllers
                 {
                     try
                     {
-                        // 1. Insert the main Invoice record
+                        // 1. Insert Invoice record
                         string invQuery = "INSERT INTO Invoice (orderDate, totalAmount, staffID, customerID) OUTPUT INSERTED.invoiceID VALUES (@date, @total, @staff, @customer)";
                         SqlCommand invCmd = new SqlCommand(invQuery, connection, transaction);
                         invCmd.Parameters.AddWithValue("@date", DateTime.Now);
                         invCmd.Parameters.AddWithValue("@total", CurrentInvoice.TotalAmount);
                         invCmd.Parameters.AddWithValue("@staff", CurrentInvoice.StaffID);
-                        invCmd.Parameters.AddWithValue("@customer", CurrentInvoice.CustomerID);
+                        invCmd.Parameters.AddWithValue("@customer", customer.CustomerID);
 
                         int generatedInvoiceId = (int)invCmd.ExecuteScalar();
                         CurrentInvoice.InvoiceID = generatedInvoiceId;
 
-                        // 2. Insert Invoice Details and Update Stock Levels (FR6)
+                        // 2. Insert Details and Update Stock
                         foreach (var item in CurrentInvoice.Details)
                         {
-                            // Save Detail
                             string detQuery = "INSERT INTO InvoiceDetails (invoiceID, productID, quantity, unitPrice) VALUES (@invId, @prodId, @qty, @price)";
                             SqlCommand detCmd = new SqlCommand(detQuery, connection, transaction);
                             detCmd.Parameters.AddWithValue("@invId", generatedInvoiceId);
@@ -78,7 +77,6 @@ namespace ComputerShopManagement.Controllers
                             detCmd.Parameters.AddWithValue("@price", item.UnitPrice);
                             detCmd.ExecuteNonQuery();
 
-                            // Update Stock
                             string stockQuery = "UPDATE Products SET stockQuantity = stockQuantity - @qty WHERE productID = @prodId";
                             SqlCommand stockCmd = new SqlCommand(stockQuery, connection, transaction);
                             stockCmd.Parameters.AddWithValue("@qty", item.Quantity);
@@ -86,18 +84,96 @@ namespace ComputerShopManagement.Controllers
                             stockCmd.ExecuteNonQuery();
                         }
 
-                        // Commit all changes safely
                         transaction.Commit();
+
+                        // 3. Trigger immediate export and launch [Requirement FR2/FR6]
+                        ExportInvoiceToText(customer);
                         return true;
                     }
                     catch
                     {
-                        // Roll back everything if any error occurs (e.g., insufficient stock constraints)
                         transaction.Rollback();
                         return false;
                     }
                 }
             }
+        }
+
+        // Formats and saves the invoice as a sleek text file
+        // Formats and saves the invoice as a sleek text file in the designated folder
+        private void ExportInvoiceToText(Customer customer)
+        {
+            StringBuilder sb = new StringBuilder();
+            string line = new string('-', 50);
+
+            // Header [Sleek modern design]
+            sb.AppendLine("==================================================");
+            sb.AppendLine("           BITTEKK COMPUTER SYSTEMS              ");
+            sb.AppendLine("         Premium Hardware & Solutions            ");
+            sb.AppendLine("==================================================");
+            sb.AppendLine($"Invoice ID: {CurrentInvoice.InvoiceID}");
+            // Explicitly formatting to 12-hour clock with AM/PM
+            sb.AppendLine($"Date:       {DateTime.Now.ToString("MMMM dd, yyyy  hh:mm tt")}");
+            sb.AppendLine(line);
+
+            // Customer Info
+            sb.AppendLine("CUSTOMER DETAILS");
+            sb.AppendLine($"Name:  {customer.FullName}");
+            sb.AppendLine($"Phone: {customer.Phone}");
+            if (!string.IsNullOrEmpty(customer.Email)) sb.AppendLine($"Email: {customer.Email}");
+            sb.AppendLine(line);
+
+            // Itemized List Header
+            sb.AppendLine(string.Format("{0,-30} {1,5} {2,12}", "Item", "Qty", "Price"));
+            sb.AppendLine(line);
+
+            // Items
+            var availableProducts = Inventory.GetAvailableProducts();
+            foreach (var detail in CurrentInvoice.Details)
+            {
+                var prod = availableProducts.Find(p => p.ProductID == detail.ProductID);
+                string prodName = prod != null ? prod.Name : $"Product #{detail.ProductID}";
+
+                // :C will automatically use the '$' sign because we set the global culture in Program.cs
+                sb.AppendLine(string.Format("{0,-30} {1,5} {2,12:C}",
+                    prodName.Length > 28 ? prodName.Substring(0, 27) + ".." : prodName,
+                    detail.Quantity,
+                    detail.UnitPrice * detail.Quantity));
+            }
+
+            // Total Amount
+            sb.AppendLine(line);
+            sb.AppendLine(string.Format("{0,-30} {1,18:C}", "TOTAL AMOUNT:", CurrentInvoice.TotalAmount));
+            sb.AppendLine("==================================================");
+            sb.AppendLine("      Thank you for shopping at BitTekk!         ");
+            sb.AppendLine("    Please keep this receipt for warranty.       ");
+            sb.AppendLine("==================================================");
+
+            // --- DIRECTORY MANAGEMENT ---
+            // Navigates up from bin\Debug\net10.0-windows to the main project folder
+            string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            string targetDir = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\InvoiceOutput"));
+
+            // Failsafe: If app is published (not running in VS), create it next to the .exe instead
+            if (!Directory.Exists(targetDir) && !baseDir.Contains("bin"))
+            {
+                targetDir = Path.Combine(baseDir, "InvoiceOutput");
+            }
+
+            // Create the directory if you haven't manually created it yet
+            if (!Directory.Exists(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            // File IO Operations
+            string fileName = $"Invoice_{CurrentInvoice.InvoiceID}.txt";
+            string filePath = Path.Combine(targetDir, fileName);
+
+            File.WriteAllText(filePath, sb.ToString());
+
+            // Launch automatically in Notepad
+            Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
         }
     }
 }
