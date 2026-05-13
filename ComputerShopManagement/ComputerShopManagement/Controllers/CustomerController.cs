@@ -106,5 +106,38 @@ namespace ComputerShopManagement.Controllers
                 return false;
             }
         }
+
+        public Customer GetCustomerByPhone(string phone)
+        {
+            using (var connection = _dbContext.GetConnection())
+            {
+                string query = "SELECT * FROM Customer WHERE phone = @Phone";
+                SqlCommand command = new SqlCommand(query, connection);
+                command.Parameters.AddWithValue("@Phone", phone);
+
+                try
+                {
+                    connection.Open();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Customer
+                            {
+                                CustomerID = Convert.ToInt32(reader["customerID"]),
+                                FullName = reader["fullName"]?.ToString(),
+                                Email = reader["email"]?.ToString(),
+                                Phone = reader["phone"]?.ToString()
+                            };
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Database Error: " + ex.Message);
+                }
+            }
+            return null;
+        }
     }
 }

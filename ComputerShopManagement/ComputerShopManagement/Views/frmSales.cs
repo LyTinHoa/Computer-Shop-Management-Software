@@ -583,16 +583,46 @@ namespace ComputerShopManagement.Views
                 return;
             }
 
-            if (_controller.ProcessPayment())
+            using (frmCheckout checkoutModal = new frmCheckout())
             {
-                MessageBox.Show("Payment processed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                _controller.CurrentInvoice.Details.Clear(); RefreshCartUI();
-                LoadCatalog();
-                RefreshCartUI();
-            }
-            else
-            {
-                MessageBox.Show("Transaction failed. Check database connection.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                if (checkoutModal.ShowDialog() == DialogResult.OK)
+                {
+                    var customerCtrl = new CustomerController();
+                    var customer = customerCtrl.GetCustomerByPhone(checkoutModal.CustomerPhone);
+
+                    if (customer == null)
+                    {
+                        Customer newCustomer = new Customer
+                        {
+                            FullName = checkoutModal.CustomerName,
+                            Email = checkoutModal.CustomerEmail,
+                            Phone = checkoutModal.CustomerPhone
+                        };
+
+                        string errorMsg;
+                        if (!customerCtrl.AddCustomer(newCustomer, out errorMsg))
+                        {
+                            MessageBox.Show(errorMsg, "Customer Creation Failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+
+                        customer = customerCtrl.GetCustomerByPhone(checkoutModal.CustomerPhone);
+                    }
+
+                    _controller.CurrentInvoice.CustomerID = customer.CustomerID;
+
+                    if (_controller.ProcessPayment())
+                    {
+                        MessageBox.Show("Payment processed successfully!", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        _controller.CurrentInvoice.Details.Clear();
+                        LoadCatalog();
+                        RefreshCartUI();
+                    }
+                    else
+                    {
+                        MessageBox.Show("Transaction failed. Check database connection or stock levels.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
             }
         }
     }
