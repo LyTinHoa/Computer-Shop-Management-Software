@@ -27,6 +27,9 @@ namespace ComputerShopManagement.Views
 
         private Staff _currentUser;
 
+        // NEW: Live Backend Connection for the KPI Cards
+        private ReportController _reportController;
+
         // Brand Colors
         private Color techBlue = Color.FromArgb(41, 128, 185);
         private Color deepText = Color.FromArgb(44, 62, 80);
@@ -50,6 +53,7 @@ namespace ComputerShopManagement.Views
         {
             InitializeComponent();
             _currentUser = loggedInUser;
+            _reportController = new ReportController(); // Initialize backend engine
 
             this.DoubleBuffered = true;
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.UserPaint | ControlStyles.ResizeRedraw, true);
@@ -193,8 +197,16 @@ namespace ComputerShopManagement.Views
             btnLogout = CreateNavButton("🚪  Logout", 0);
             btnLogout.Height = 80;
             btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
-            btnLogout.MouseEnter += (s, e) => btnLogout.BackColor = dangerRed;
-            btnLogout.MouseLeave += (s, e) => btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
+
+            btnLogout.MouseEnter += (s, e) => {
+                btnLogout.BackColor = dangerRed;
+                btnLogout.ForeColor = Color.White;
+            };
+            btnLogout.MouseLeave += (s, e) => {
+                btnLogout.BackColor = Color.FromArgb(20, 0, 0, 0);
+                btnLogout.ForeColor = Color.White;
+            };
+
             btnLogout.Click += (s, e) =>
             {
                 if (MessageBox.Show("Are you sure you want to log out?", "Confirm Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
@@ -212,11 +224,7 @@ namespace ComputerShopManagement.Views
             btnInventory.Click += (s, e) => OpenModule(new frmInventory(_currentUser));
             btnEmployees.Click += (s, e) => OpenModule(new frmEmployeeAdmin(_currentUser));
             btnCustomers.Click += (s, e) => OpenModule(new frmCustomers());
-
-            // FIX: Wire up the click event to open the actual frmReports
-            btnReports.Click += (s, e) => {
-                OpenModule(new frmReports(_currentUser));
-            };
+            btnReports.Click += (s, e) => OpenModule(new frmReports(_currentUser));
 
             // ==========================================
             // 3. MAIN CONTENT
@@ -301,14 +309,18 @@ namespace ComputerShopManagement.Views
             lblRole = new Label { Text = $"System Role: {_currentUser.Role}   |   Last Login: {DateTime.Now.ToString("dd-MM-yyyy")}", ForeColor = Color.Gray, AutoSize = true };
             pnlMainContent.Controls.Add(lblRole);
 
-            cardRevenue = CreateKPICard("Today's Revenue", "$4,250.00", "+12% from yesterday", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96));
+            // Initialize cards using the new dynamic Tag system
+            cardRevenue = CreateKPICard("Today's Revenue", "$0.00", "Calculating...", Color.FromArgb(46, 204, 113), Color.FromArgb(39, 174, 96));
             pnlMainContent.Controls.Add(cardRevenue);
 
-            cardOrders = CreateKPICard("Transactions Today", "24", "Avg. Value: $175.00", Color.FromArgb(52, 152, 219), techBlue);
+            cardOrders = CreateKPICard("Transactions Today", "0", "Avg. Value: $0.00", Color.FromArgb(52, 152, 219), techBlue);
             pnlMainContent.Controls.Add(cardOrders);
 
-            cardStock = CreateKPICard("Low Stock Alerts", "2", "Requires immediate review", dangerRed, Color.FromArgb(192, 57, 43));
+            cardStock = CreateKPICard("Low Stock Alerts", "0", "Checking inventory...", dangerRed, Color.FromArgb(192, 57, 43));
             pnlMainContent.Controls.Add(cardStock);
+
+            // Fetch live data immediately
+            RefreshKPIs();
 
             lblClock = new Label { ForeColor = techBlue, AutoSize = true };
             pnlMainContent.Controls.Add(lblClock);
@@ -335,11 +347,51 @@ namespace ComputerShopManagement.Views
             clockTimer.Start();
         }
 
+        // ==========================================
+        // NEW: THE LIVE KPI ENGINE
+        // ==========================================
+        private void RefreshKPIs()
+        {
+            if (cardRevenue == null || cardOrders == null || cardStock == null) return;
+
+            try
+            {
+                decimal dailyRev = _reportController.GetDailyRevenue();
+                int dailyTrans = _reportController.GetDailyTransactionCount();
+                int lowStock = _reportController.GetLowStockCount();
+
+                decimal avgValue = dailyTrans > 0 ? (dailyRev / dailyTrans) : 0;
+
+                UpdateKPICard(cardRevenue, dailyRev.ToString("C2"), "Gross Revenue Today");
+                UpdateKPICard(cardOrders, dailyTrans.ToString(), $"Avg. Value: {avgValue.ToString("C2")}");
+                UpdateKPICard(cardStock, lowStock.ToString(), lowStock > 0 ? "Requires immediate review!" : "Stock levels healthy");
+            }
+            catch
+            {
+                // Silently failsafe if DB connection hasn't initialized yet
+            }
+        }
+
+        private void UpdateKPICard(Panel card, string newValue, string newSubText)
+        {
+            if (card.Tag is string[] data)
+            {
+                data[1] = newValue;
+                data[2] = newSubText;
+                card.Invalidate();
+            }
+        }
+
         private Panel CreateKPICard(string title, string value, string subText, Color gradientStart, Color gradientEnd)
         {
             Panel card = new Panel { BackColor = Color.Transparent };
 
+            // Store text data in the Tag so it can be dynamically updated by RefreshKPIs
+            card.Tag = new string[] { title, value, subText };
+
             card.Paint += (s, e) => {
+                string[] data = (string[])card.Tag;
+
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
                 e.Graphics.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
 
@@ -355,9 +407,24 @@ namespace ComputerShopManagement.Views
                 float valueSize = Math.Max(18f, card.Height * 0.20f);
                 float subSize = Math.Max(8f, card.Height * 0.06f);
 
-                e.Graphics.DrawString(title, new Font("Segoe UI Semibold", titleSize), new SolidBrush(Color.FromArgb(220, 255, 255, 255)), new Point(25, (int)(card.Height * 0.13f)));
-                e.Graphics.DrawString(value, new Font("Segoe UI", valueSize, FontStyle.Bold), Brushes.White, new Point(20, (int)(card.Height * 0.33f)));
-                e.Graphics.DrawString(subText, new Font("Segoe UI", subSize), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point(25, (int)(card.Height * 0.72f)));
+                e.Graphics.DrawString(data[0], new Font("Segoe UI Semibold", titleSize), new SolidBrush(Color.FromArgb(220, 255, 255, 255)), new Point(25, (int)(card.Height * 0.13f)));
+
+                // NEW: Auto-Scaling Font Engine ensures the central value text never overlaps the bounds of the card!
+                float fontSize = valueSize;
+                Font valueFont = new Font("Segoe UI", fontSize, FontStyle.Bold);
+                while (e.Graphics.MeasureString(data[1], valueFont).Width > card.Width - 40 && fontSize > 12f)
+                {
+                    fontSize -= 2f;
+                    valueFont.Dispose();
+                    valueFont = new Font("Segoe UI", fontSize, FontStyle.Bold);
+                }
+
+                // Adjust Y position slightly to stay perfectly centered vertically if the text shrank
+                int yPos = (int)(card.Height * 0.33f) + (int)((valueSize - fontSize) / 2);
+                e.Graphics.DrawString(data[1], valueFont, Brushes.White, new Point(20, yPos));
+                valueFont.Dispose();
+
+                e.Graphics.DrawString(data[2], new Font("Segoe UI", subSize), new SolidBrush(Color.FromArgb(200, 255, 255, 255)), new Point(25, (int)(card.Height * 0.72f)));
             };
             return card;
         }
@@ -378,8 +445,16 @@ namespace ComputerShopManagement.Views
                 Cursor = Cursors.Hand
             };
             btn.FlatAppearance.BorderSize = 0;
-            btn.MouseEnter += (s, e) => btn.BackColor = Color.FromArgb(50, 255, 255, 255);
-            btn.MouseLeave += (s, e) => btn.BackColor = Color.Transparent;
+
+            btn.MouseEnter += (s, e) => {
+                btn.BackColor = Color.White;
+                btn.ForeColor = deepText;
+            };
+            btn.MouseLeave += (s, e) => {
+                btn.BackColor = Color.Transparent;
+                btn.ForeColor = Color.White;
+            };
+
             pnlSidebar.Controls.Add(btn);
             return btn;
         }
@@ -387,6 +462,9 @@ namespace ComputerShopManagement.Views
         private void OpenModule(Form module)
         {
             module.StartPosition = FormStartPosition.Manual;
+
+            // Enforce window sizing to prevent restore glitch
+            module.Size = this.RestoreBounds.Size;
 
             if (this.WindowState == FormWindowState.Normal)
             {
@@ -418,6 +496,9 @@ namespace ComputerShopManagement.Views
                 {
                     this.Bounds = finalBounds;
                 }
+
+                // NEW: Refresh the cards immediately so the user sees live data upon returning!
+                RefreshKPIs();
 
                 this.OnResize(EventArgs.Empty);
                 this.Refresh();

@@ -253,8 +253,8 @@ namespace ComputerShopManagement.Views
             pnlGridWrapper.Controls.Add(dgvCustomers);
             pnlLeft.Controls.Add(pnlGridWrapper);
 
-            btnBack = new Panel { Cursor = Cursors.Hand, BackColor = Color.Transparent };
-            typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, btnBack, new object[] { true });
+            btnBack = new Panel { Size = new Size(110, 45), Cursor = Cursors.Hand, BackColor = Color.Transparent, Location = new Point(30, 27) };
+            EnableDoubleBuffering(btnBack);
 
             bool isBackHovered = false;
             btnBack.MouseEnter += (s, e) => { if (!isBackHovered) { isBackHovered = true; btnBack.Invalidate(); } };

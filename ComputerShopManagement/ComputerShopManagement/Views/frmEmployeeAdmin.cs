@@ -70,6 +70,11 @@ namespace ComputerShopManagement.Views
             DwmSetWindowAttribute(this.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref pref, sizeof(int));
         }
 
+        private void EnableDoubleBuffering(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, control, new object[] { true });
+        }
+
         private void SetupUI()
         {
             this.Size = new Size(1200, 750);
@@ -140,8 +145,9 @@ namespace ComputerShopManagement.Views
             dgvEmployees = CreateGrid();
             pnlLeft.Controls.Add(dgvEmployees);
 
-            btnBack = new Panel { Cursor = Cursors.Hand, BackColor = Color.Transparent };
-            typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, btnBack, new object[] { true });
+            btnBack = new Panel { Size = new Size(110, 45), Cursor = Cursors.Hand, BackColor = Color.Transparent, Location = new Point(30, 27) };
+            EnableDoubleBuffering(btnBack);
+
             bool isBackHovered = false;
             btnBack.MouseEnter += (s, e) => { isBackHovered = true; btnBack.Invalidate(); };
             btnBack.MouseLeave += (s, e) => { isBackHovered = false; btnBack.Invalidate(); };

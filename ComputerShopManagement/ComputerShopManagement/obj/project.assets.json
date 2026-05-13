@@ -1,7 +1,7 @@
 {
-  "version": 4,
+  "version": 3,
   "targets": {
-    "net10.0-windows": {
+    "net10.0-windows7.0": {
       "Microsoft.Bcl.Cryptography/9.0.13": {
         "type": "package",
         "compile": {
@@ -960,28 +960,28 @@
     }
   },
   "projectFileDependencyGroups": {
-    "net10.0-windows": [
+    "net10.0-windows7.0": [
       "Microsoft.Data.SqlClient >= 7.0.1"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\LENOVO\\.nuget\\packages\\": {},
+    "C:\\Users\\solacrity\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
+      "projectUniqueName": "D:\\College\\Coding Homework\\Application Technology - C#\\LT_Final_Report\\Project\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
       "projectName": "ComputerShopManagement",
-      "projectPath": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
-      "packagesPath": "C:\\Users\\LENOVO\\.nuget\\packages\\",
-      "outputPath": "D:\\TDTU\\Sophomore\\SecondHalf\\SoftwareEngineer\\Finalterm\\Computer-Shop-Management-Software\\ComputerShopManagement\\ComputerShopManagement\\obj\\",
+      "projectPath": "D:\\College\\Coding Homework\\Application Technology - C#\\LT_Final_Report\\Project\\ComputerShopManagement\\ComputerShopManagement\\ComputerShopManagement.csproj",
+      "packagesPath": "C:\\Users\\solacrity\\.nuget\\packages\\",
+      "outputPath": "D:\\College\\Coding Homework\\Application Technology - C#\\LT_Final_Report\\Project\\ComputerShopManagement\\ComputerShopManagement\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\LENOVO\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\solacrity\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
@@ -993,8 +993,7 @@
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
-        "net10.0-windows": {
-          "framework": "net10.0-windows7.0",
+        "net10.0-windows7.0": {
           "targetAlias": "net10.0-windows",
           "projectReferences": {}
         }
@@ -1009,11 +1008,10 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.300"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
-      "net10.0-windows": {
-        "framework": "net10.0-windows7.0",
+      "net10.0-windows7.0": {
         "targetAlias": "net10.0-windows",
         "dependencies": {
           "Microsoft.Data.SqlClient": {
@@ -1040,7 +1038,7 @@
             "privateAssets": "none"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.300/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.CSharp": "(,4.7.32767]",
           "Microsoft.VisualBasic": "(,10.4.32767]",
