@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using ComputerShopManagement.Controllers;
 using ComputerShopManagement.Models;
 
@@ -48,6 +49,12 @@ namespace ComputerShopManagement.Views
         // Responsive Scale Trackers
         private float _btnBackScale = 1.0f;
         private float _searchScale = 1.0f;
+
+        // SILENT AUTO-LOOKUP ENGINE UI
+        private Panel pnlStatusBadge;
+        private string _badgeText = "";
+        private Color _badgeColor = Color.Gray;
+        private bool _wasAutoFilled = false;
 
         private class InputLayout
         {
@@ -116,6 +123,11 @@ namespace ComputerShopManagement.Views
             path.AddArc(rect.X, rect.Bottom - radius, radius, radius, 90, 90);
             path.CloseFigure();
             return path;
+        }
+
+        private void EnableDoubleBuffering(Control control)
+        {
+            typeof(Control).InvokeMember("DoubleBuffered", System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic, null, control, new object[] { true });
         }
 
         private void SetupModernCustomerUI()
@@ -275,9 +287,36 @@ namespace ComputerShopManagement.Views
             lblFormTitle = new Label { Text = "Add New Customer", ForeColor = deepText, AutoSize = true };
             pnlRight.Controls.Add(lblFormTitle);
 
-            txtFullName = CreateLabeledInput(pnlRight, "Full Name:", 70, 380);
-            txtPhone = CreateLabeledInput(pnlRight, "Phone Number:", 135, 380);
+            // SILENT AUTO-LOOKUP UI
+            pnlStatusBadge = new Panel
+            {
+                Size = new Size(120, 24),
+                BackColor = Color.White,
+                Visible = false
+            };
+            EnableDoubleBuffering(pnlStatusBadge);
+            pnlStatusBadge.Paint += (s, e) => {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.White);
+                using (GraphicsPath path = GetRoundedPath(new Rectangle(0, 0, pnlStatusBadge.Width - 1, pnlStatusBadge.Height - 1), 12))
+                {
+                    e.Graphics.FillPath(new SolidBrush(_badgeColor), path);
+                }
+                TextRenderer.DrawText(e.Graphics, _badgeText, new Font("Segoe UI Semibold", 9), new Rectangle(0, 0, pnlStatusBadge.Width, pnlStatusBadge.Height), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+            };
+            pnlRight.Controls.Add(pnlStatusBadge);
+
+            // Use the original helper, but inject the MaxLength and KeyPress events into txtPhone
+            txtFullName = CreateLabeledInput(pnlRight, "Full Name *:", 70, 380);
+            txtPhone = CreateLabeledInput(pnlRight, "Phone Number *:", 135, 380);
             txtEmail = CreateLabeledInput(pnlRight, "Email Address (Optional):", 200, 380);
+
+            // Apply specific configurations to txtPhone
+            txtPhone.MaxLength = 11;
+            txtPhone.KeyPress += (s, e) => {
+                if (!char.IsControl(e.KeyChar) && !char.IsDigit(e.KeyChar)) { e.Handled = true; }
+            };
+            txtPhone.TextChanged += TxtPhone_TextChanged;
 
             btnAddCustomer = CreateCustomButton(pnlRight, "ADD CUSTOMER", techBlue, Color.FromArgb(52, 152, 219), ref isAddHovered);
             btnAddCustomer.Click += BtnAddCustomer_Click;
@@ -320,6 +359,12 @@ namespace ComputerShopManagement.Views
                     input.Txt.Font = new Font("Segoe UI", Math.Max(9f, 12 * scaleRight));
                     input.Txt.Size = new Size((int)(input.BaseWidth * scaleRight), (int)(30 * scaleRight));
                     input.Txt.Location = new Point((int)(20 * scaleRight), (int)(input.BaseY * scaleRight) + (int)(25 * scaleRight));
+
+                    // Dynamically position the status badge relative to the phone number label
+                    if (input.Txt == txtPhone)
+                    {
+                        pnlStatusBadge.Location = new Point(input.Lbl.Right + 10, input.Lbl.Top - 2);
+                    }
                 }
 
                 if (btnAddCustomer != null)
@@ -536,6 +581,7 @@ namespace ComputerShopManagement.Views
 
             return grid;
         }
+
         private void LoadCustomerData()
         {
             dgvCustomers.DataSource = _controller.GetAllCustomers();
@@ -565,19 +611,83 @@ namespace ComputerShopManagement.Views
             };
         }
 
+        // ==========================================
+        // SILENT AUTO-LOOKUP ENGINE
+        // ==========================================
+        private void TxtPhone_TextChanged(object sender, EventArgs e)
+        {
+            string phone = txtPhone.Text.Trim();
+
+            if (phone.Length >= 10)
+            {
+                Customer customer = _controller.GetCustomerByPhone(phone);
+                if (customer != null)
+                {
+                    txtFullName.Text = customer.FullName;
+                    txtEmail.Text = customer.Email;
+                    _wasAutoFilled = true;
+                    ShowBadge("Customer Found", Color.FromArgb(46, 204, 113));
+                }
+                else
+                {
+                    if (_wasAutoFilled) { txtFullName.Clear(); txtEmail.Clear(); _wasAutoFilled = false; }
+                    ShowBadge("New Customer", Color.FromArgb(41, 128, 185)); // techBlue
+                }
+            }
+            else
+            {
+                if (_wasAutoFilled) { txtFullName.Clear(); txtEmail.Clear(); _wasAutoFilled = false; }
+                pnlStatusBadge.Visible = false;
+            }
+        }
+
+        private void ShowBadge(string text, Color color)
+        {
+            _badgeText = text;
+            _badgeColor = color;
+            pnlStatusBadge.Visible = true;
+            pnlStatusBadge.Invalidate();
+        }
+
         private void BtnAddCustomer_Click(object sender, EventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(txtFullName.Text) || string.IsNullOrWhiteSpace(txtPhone.Text))
+            string phone = txtPhone.Text.Trim();
+            string name = txtFullName.Text.Trim();
+            string email = txtEmail.Text.Trim();
+
+            // 1. Strict Phone Validation
+            if (string.IsNullOrEmpty(phone) || phone.Length < 10)
             {
-                MessageBox.Show("Please fill out at least the Full Name and Phone Number.", "Missing Info", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Please enter a valid phone number containing at least 10 digits.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtPhone.Focus();
                 return;
+            }
+
+            // 2. Strict Name Validation
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                MessageBox.Show("Full Name is mandatory to register a customer.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                txtFullName.Focus();
+                return;
+            }
+
+            // 3. Email Validation
+            if (!string.IsNullOrEmpty(email))
+            {
+                string emailPattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+                if (!Regex.IsMatch(email, emailPattern))
+                {
+                    MessageBox.Show("Please enter a valid email address.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    txtEmail.Focus();
+                    return;
+                }
             }
 
             Customer newCustomer = new Customer
             {
-                FullName = txtFullName.Text.Trim(),
-                Email = txtEmail.Text.Trim(),
-                Phone = txtPhone.Text.Trim()
+                FullName = name,
+                Email = email,
+                Phone = phone
             };
 
             string errorMsg;
@@ -598,7 +708,8 @@ namespace ComputerShopManagement.Views
             txtFullName.Clear();
             txtEmail.Clear();
             txtPhone.Clear();
-            txtFullName.Focus();
+            pnlStatusBadge.Visible = false;
+            txtPhone.Focus();
         }
 
         private void DragWindow_MouseDown(object sender, MouseEventArgs e)
@@ -615,12 +726,10 @@ namespace ComputerShopManagement.Views
             if (this.WindowState == FormWindowState.Normal)
             {
                 this.WindowState = FormWindowState.Maximized;
-                btnMaximize.Text = "❐";
             }
             else
             {
                 this.WindowState = FormWindowState.Normal;
-                btnMaximize.Text = "☐";
             }
         }
 
@@ -636,33 +745,21 @@ namespace ComputerShopManagement.Views
                 int paddingX = 15;
 
                 // --- RESPONSIVE BUTTON SIZING LOGIC ---
-                // 1. Default height with standard padding (for standard 1 row)
                 int targetHeight = cellH - 16;
-
-                // 2. Determine the 40% threshold, but never let it go below the size of ~1 standard row (28px)
                 int responsiveHeight = Math.Max((int)(cellH * 0.40), 28);
-
-                // 3. Apply the constraint: if the cell gets massive, shrink the button to the 40% ratio
                 targetHeight = Math.Min(targetHeight, responsiveHeight);
-
-                // 4. Hard cap the max size at 200px
                 targetHeight = Math.Min(targetHeight, 200);
 
-                // Calculate final dimensions
                 int btnWidth = e.CellBounds.Width - (paddingX * 2);
                 int btnHeight = targetHeight;
-
-                // Center the button horizontally and vertically inside the stretched cell
                 int btnX = e.CellBounds.X + paddingX;
                 int btnY = e.CellBounds.Y + (cellH - btnHeight) / 2;
 
                 Rectangle rect = new Rectangle(btnX, btnY, btnWidth, btnHeight);
 
-                // Keep the corner rounding proportional to the new responsive height
                 int radius = (int)(rect.Height * 0.30);
                 if (radius <= 0) radius = 1;
 
-                // Draw the red rounded rectangle
                 using (GraphicsPath path = new GraphicsPath())
                 {
                     path.AddArc(rect.X, rect.Y, radius, radius, 180, 90);
@@ -694,19 +791,17 @@ namespace ComputerShopManagement.Views
                 e.Handled = true;
             }
         }
+
         private void RecalculateGridHeight()
         {
             if (dgvCustomers == null) return;
 
             int headerHeight = dgvCustomers.ColumnHeadersVisible ? dgvCustomers.ColumnHeadersHeight : 0;
-
-            // Safely get row height (returns 0 if no rows exist yet)
-            int rowsHeight = dgvCustomers.Rows.Count > 0
-                ? dgvCustomers.Rows.GetRowsHeight(DataGridViewElementStates.None)
-                : 0;
+            int rowsHeight = dgvCustomers.Rows.Count > 0 ? dgvCustomers.Rows.GetRowsHeight(DataGridViewElementStates.None) : 0;
 
             dgvCustomers.Height = headerHeight + rowsHeight + 2;
         }
+
         private void DgvCustomers_DeleteClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0 && e.ColumnIndex >= 0 && dgvCustomers.Columns[e.ColumnIndex].Name == "DeleteAction")
@@ -715,9 +810,7 @@ namespace ComputerShopManagement.Views
                 {
                     int customerId = Convert.ToInt32(dgvCustomers.Rows[e.RowIndex].Cells["customerID"].Value);
                     string errorMsg;
-                    bool success = _controller.DeleteCustomer(customerId, out errorMsg);
-
-                    if (success)
+                    if (_controller.DeleteCustomer(customerId, out errorMsg))
                     {
                         LoadCustomerData();
                     }

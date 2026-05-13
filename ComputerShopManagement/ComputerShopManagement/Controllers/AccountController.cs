@@ -176,7 +176,7 @@ namespace ComputerShopManagement.Controllers
                 }
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // If they have associated invoices, foreign key constraints will block deletion.
                 errorMsg = "Cannot delete employee. They have existing sales records tied to their account.";
