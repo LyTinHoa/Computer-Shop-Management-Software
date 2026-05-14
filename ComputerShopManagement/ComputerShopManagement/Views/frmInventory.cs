@@ -535,6 +535,7 @@ namespace ComputerShopManagement.Views
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 ReadOnly = true,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill
+
             };
 
             grid.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
@@ -563,6 +564,7 @@ namespace ComputerShopManagement.Views
 
             grid.CellPainting += DgvInventory_CellPainting;
             grid.CellClick += DgvInventory_DeleteClick;
+            grid.CellToolTipTextNeeded += DgvInventory_CellToolTipTextNeeded;
 
             return grid;
         }
@@ -722,6 +724,35 @@ namespace ComputerShopManagement.Views
 
                     if (success) LoadInventoryData();
                     else MessageBox.Show(errorMsg, "Deletion Blocked", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void DgvInventory_CellToolTipTextNeeded(object sender, DataGridViewCellToolTipTextNeededEventArgs e)
+        {
+            // Ensure we are hovering over an actual data row, not the header
+            if (e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            {
+                DataGridViewRow row = dgvInventory.Rows[e.RowIndex];
+
+                // Extract the hidden hardware specs
+                string cpu = row.Cells["cpu"].Value?.ToString() ?? "";
+                string ram = row.Cells["ram"].Value?.ToString() ?? "";
+                string storage = row.Cells["storage"].Value?.ToString() ?? "";
+                string gpu = row.Cells["gpu"].Value?.ToString() ?? "";
+
+                List<string> specs = new List<string>();
+
+                // Build the tooltip text, ignoring empty or "N/A" values
+                if (!string.IsNullOrWhiteSpace(cpu) && cpu.ToUpper() != "N/A") specs.Add($"CPU: {cpu}");
+                if (!string.IsNullOrWhiteSpace(ram) && ram.ToUpper() != "N/A") specs.Add($"RAM: {ram}");
+                if (!string.IsNullOrWhiteSpace(storage) && storage.ToUpper() != "N/A") specs.Add($"Storage: {storage}");
+                if (!string.IsNullOrWhiteSpace(gpu) && gpu.ToUpper() != "N/A") specs.Add($"GPU: {gpu}");
+
+                // If there are valid specs, format them neatly with line breaks
+                if (specs.Count > 0)
+                {
+                    e.ToolTipText = string.Join("\n", specs);
                 }
             }
         }
