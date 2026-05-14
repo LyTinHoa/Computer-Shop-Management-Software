@@ -108,8 +108,8 @@ namespace ComputerShopManagement.Controllers
 
             // Header [Sleek modern design]
             sb.AppendLine("==================================================");
-            sb.AppendLine("           BITTEKK COMPUTER SYSTEMS              ");
-            sb.AppendLine("         Premium Hardware & Solutions            ");
+            sb.AppendLine("             BITTEKK COMPUTER SHOP                ");
+            sb.AppendLine("          Premium Hardware & Solutions            ");
             sb.AppendLine("==================================================");
             sb.AppendLine($"Invoice ID: {CurrentInvoice.InvoiceID}");
             // Explicitly formatting to 12-hour clock with AM/PM
